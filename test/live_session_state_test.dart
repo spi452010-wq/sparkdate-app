@@ -141,6 +141,30 @@ void main() {
       await leave(t, repo);
     });
 
+    testWidgets('event:join ack lobby state is applied on join and rejoin; later lobby:state still handled', (t) async {
+      final s = FakeLiveSocket()
+        ..acks['event:join'] = {
+          'ok': true,
+          'lobby': {'eventId': 'e1', 'round': 2, 'status': 'live', 'waiting': 7, 'nextRoundAt': '2026-10-30T12:00:00.000Z'},
+          'serverTime': 0,
+        };
+      final repo = SocketLiveSessionRepository(s, FixedServerTime(Duration.zero));
+      final got = <LiveUpdate>[];
+      repo.join('e1').listen(got.add);
+      await t.pump();
+      final first = got.whereType<LobbyStateUpdate>().single;
+      expect((first.round, first.status, first.waiting), (2, 'live', 7));
+      s.conn.add(LiveConnection.disconnected);
+      await t.pump();
+      s.conn.add(LiveConnection.connected);
+      await t.pump();
+      expect(got.whereType<LobbyStateUpdate>().length, 2);
+      s.server('lobby:state', {'eventId': 'e1', 'round': 3, 'status': 'live', 'waiting': 4, 'nextRoundAt': null});
+      await t.pump();
+      expect(got.whereType<LobbyStateUpdate>().last.waiting, 4);
+      await leave(t, repo);
+    });
+
     testWidgets('rejected join and rejected decision surface errors', (t) async {
       final s = FakeLiveSocket()
         ..acks['event:join'] = {'ok': false, 'error': 'NOT_BOOKED'}

@@ -85,7 +85,13 @@ class SocketLiveSessionRepository implements LiveSessionRepository {
   Future<void> _sendJoin({bool reconnect = false}) async {
     try {
       final r = await _socket.emitAck('event:join', {'eventId': _eventId});
-      if (r['ok'] != true) _add(JoinRejectedUpdate(r['error']?.toString() ?? 'JOIN_FAILED'));
+      if (r['ok'] != true) {
+        _add(JoinRejectedUpdate(r['error']?.toString() ?? 'JOIN_FAILED'));
+      } else if (r['lobby'] is Map) {
+        // lobby:state broadcasts are throttled server-side; the ack carries the current state, apply it now.
+        final u = LiveUpdate.fromSocket('lobby:state', r['lobby']);
+        if (u != null) _add(u);
+      }
     } catch (_) {
       _add(const JoinRejectedUpdate('TIMEOUT'));
     }
