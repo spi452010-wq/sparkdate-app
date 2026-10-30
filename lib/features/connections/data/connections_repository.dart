@@ -13,7 +13,11 @@ abstract interface class ConnectionsRepository {
 
   /// Throws [ApiErrorCode.chatPassRequired] without an active Chat Pass.
   Future<ChatMessage> send(String userId, String text);
-  Future<List<AppNotification>> notifications();
+  /// GET /notifications?before=&limit= (newest first; pass the last item's `at` as [before] for the next page).
+  Future<List<AppNotification>> notifications({DateTime? before, int limit = 20});
+
+  /// POST /notifications/read `{ids?}` (all when null) → number updated.
+  Future<int> markRead([List<String>? ids]);
 }
 
 class MockConnectionsRepository implements ConnectionsRepository {
@@ -92,20 +96,42 @@ class MockConnectionsRepository implements ConnectionsRepository {
     return m;
   }
 
+  late final _notifs = <AppNotification>[
+    AppNotification(
+        id: 'n1',
+        type: NotificationType.bookingConfirmed,
+        title: "You're booked! 🎉",
+        body: 'Friday Night Speed Dating is confirmed.',
+        data: const {'eventId': 'evt_1', 'bookingId': 'bkg_0'},
+        at: DateTime(2026, 10, 29, 22)),
+    AppNotification(
+        id: 'n2',
+        type: NotificationType.eventReminder,
+        title: 'Event tomorrow',
+        body: 'Friday Night Speed Dating starts at 8 PM.',
+        data: const {'eventId': 'evt_1'},
+        at: DateTime(2026, 10, 29, 9),
+        read: true),
+  ];
+
   @override
-  Future<List<AppNotification>> notifications() async => [
-        AppNotification(
-            id: 'n1', title: "It's a match! 🎉", body: 'You and Ananya liked each other.', at: DateTime(2026, 10, 29, 22)),
-        AppNotification(
-            id: 'n2',
-            title: 'Event tomorrow',
-            body: 'Friday Night Speed Dating starts at 8 PM.',
-            at: DateTime(2026, 10, 29, 9),
-            read: true),
-      ];
+  Future<List<AppNotification>> notifications({DateTime? before, int limit = 20}) async =>
+      _notifs.where((n) => before == null || n.at.isBefore(before)).take(limit).toList();
+
+  @override
+  Future<int> markRead([List<String>? ids]) async {
+    var c = 0;
+    for (var i = 0; i < _notifs.length; i++) {
+      if (!_notifs[i].read && (ids == null || ids.contains(_notifs[i].id))) {
+        _notifs[i] = _notifs[i].markedRead();
+        c++;
+      }
+    }
+    return c;
+  }
 }
 
-/// Provisional endpoints (not yet in the API contract): /connections, /chats, /notifications.
+/// /subscriptions/me and /notifications follow SPRINT2_API.md; /connections and /chats are still provisional.
 class RemoteConnectionsRepository implements ConnectionsRepository {
   RemoteConnectionsRepository(this._dio, this._myId);
   final Dio _dio;
@@ -142,8 +168,14 @@ class RemoteConnectionsRepository implements ConnectionsRepository {
   Future<ChatMessage> send(String userId, String text) => _run(() async => ChatMessage.fromJson(
       (await _dio.post<Map<String, dynamic>>('/chats/$userId/messages', data: {'text': text})).data!, _myId()));
   @override
-  Future<List<AppNotification>> notifications() => _run(() async {
-        final r = await _dio.get<Map<String, dynamic>>('/notifications');
+  Future<List<AppNotification>> notifications({DateTime? before, int limit = 20}) => _run(() async {
+        final r = await _dio.get<Map<String, dynamic>>('/notifications',
+            queryParameters: {if (before != null) 'before': before.toUtc().toIso8601String(), 'limit': limit});
         return (r.data!['items'] as List).map((e) => AppNotification.fromJson(e as Map<String, dynamic>)).toList();
       });
+
+  @override
+  Future<int> markRead([List<String>? ids]) => _run(() async =>
+      ((await _dio.post<Map<String, dynamic>>('/notifications/read', data: {if (ids != null) 'ids': ids})).data!['updated'] as num)
+          .toInt());
 }

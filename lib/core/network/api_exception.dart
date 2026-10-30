@@ -26,6 +26,26 @@ enum ApiErrorCode {
   billingUnavailable('BILLING_UNAVAILABLE', 'Google Play Billing is not available on this device.'),
   chatPassRequired('CHAT_PASS_REQUIRED', 'Get a Chat Pass to keep chatting.'),
   refundNotEligible('REFUND_NOT_ELIGIBLE', 'This booking is not eligible for a refund.'),
+  // Sprint 2 (docs/api/SPRINT2_API.md)
+  profileIncomplete('PROFILE_INCOMPLETE', 'Complete your profile first.'),
+  notFound('NOT_FOUND', 'Not found.'),
+  eventNotFound('EVENT_NOT_FOUND', 'This event is no longer available.'),
+  eventNotBookable('EVENT_NOT_BOOKABLE', 'This event is not open for booking.'),
+  bookingNotFound('BOOKING_NOT_FOUND', 'Booking not found.'),
+  bookingNotCancellable('BOOKING_NOT_CANCELLABLE', 'Only unpaid bookings can be cancelled.'),
+  refundAlreadyRequested('REFUND_ALREADY_REQUESTED', 'You have already requested a refund.'),
+  refundRejected('REFUND_REJECTED', 'Your refund request was rejected.'),
+  purchaseInvalid('PURCHASE_INVALID', 'We could not verify this purchase.'),
+  productMismatch('PRODUCT_MISMATCH', 'We could not verify this purchase.'),
+  purchaseAlreadyUsed('PURCHASE_ALREADY_USED', 'This purchase was already used.'),
+  eventFullRefunded('EVENT_FULL_REFUNDED', 'Your seat hold expired and the event filled up. Your payment is being refunded.'),
+  playUnavailable('PLAY_UNAVAILABLE', 'Google Play is unavailable. Please try again shortly.'),
+  idempotencyKeyRequired('IDEMPOTENCY_KEY_REQUIRED', 'Something went wrong. Please try again.'),
+  idempotencyInProgress('IDEMPOTENCY_IN_PROGRESS', 'Still processing your previous request…'),
+  idempotencyKeyReused('IDEMPOTENCY_KEY_REUSED', 'Something went wrong. Please try again.'),
+  verificationNotAllowed('VERIFICATION_NOT_ALLOWED', 'Verification is already pending or approved.'),
+  paymentPending('PAYMENT_PENDING', 'Payment is pending. We will confirm as soon as Google Play does.'),
+  network('NETWORK', 'No connection. Please try again.'),
   validation('VALIDATION_ERROR', 'Please check the details you entered.'),
   unknown('UNKNOWN', 'Something went wrong. Please try again.');
 
@@ -43,6 +63,16 @@ class ApiException implements Exception {
   final Duration? retryAfter;
 
   String get message => error.message;
+
+  /// Safe to retry the same action with the same Idempotency-Key.
+  bool get retryable => switch (error) {
+        ApiErrorCode.network ||
+        ApiErrorCode.playUnavailable ||
+        ApiErrorCode.idempotencyInProgress ||
+        ApiErrorCode.providerUnavailable ||
+        ApiErrorCode.unknown => true,
+        _ => false,
+      };
 
   @override
   String toString() => 'ApiException(${error.code})';

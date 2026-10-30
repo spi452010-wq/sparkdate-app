@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../app/routes/app_routes.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/network/idempotency.dart';
 import '../../../core/widgets/ui.dart';
 import '../data/refund_repository.dart';
 
@@ -16,6 +18,7 @@ class RefundController extends GetxController {
   final note = TextEditingController();
   final busy = false.obs;
   final result = Rxn<RefundRequest>();
+  final _action = IdempotentAction();
 
   @override
   void onInit() {
@@ -26,9 +29,10 @@ class RefundController extends GetxController {
   Future<void> submit() async {
     final i = info.value;
     if (i == null || busy.value) return;
+    if (!i.eligible) return showError(const ApiException(ApiErrorCode.refundNotEligible));
     busy.value = true;
     try {
-      result.value = await _repo.request(i.bookingId, reason.value, note: note.text.trim());
+      result.value = await _action.run((k) => _repo.request(i.bookingId, reason.value, note: note.text.trim(), idempotencyKey: k));
       Get.offNamed(Routes.refundDone);
     } catch (e) {
       showError(e);

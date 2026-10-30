@@ -46,7 +46,7 @@ ApiException mapDioError(DioException e) {
     if (det is Map && det['retryAfterSec'] is num) retry = (det['retryAfterSec'] as num).toInt();
   }
   if (code == null && e.type != DioExceptionType.badResponse) {
-    return const ApiException(ApiErrorCode.providerUnavailable);
+    return const ApiException(ApiErrorCode.network);
   }
   return ApiException(ApiErrorCode.fromCode(code), retryAfter: retry == null ? null : Duration(seconds: retry));
 }

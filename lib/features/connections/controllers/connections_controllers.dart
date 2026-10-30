@@ -4,7 +4,9 @@ import 'package:get/get.dart';
 import '../../../app/routes/app_routes.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/idempotency.dart';
 import '../../../core/widgets/ui.dart';
+import '../../billing/data/billing_models.dart';
 import '../../billing/data/payments_repository.dart';
 import '../../billing/services/billing_service.dart';
 import '../../live/data/live_models.dart';
@@ -139,15 +141,27 @@ class ChatSubscriptionController extends GetxController {
   final _api = Get.find<ApiClient>();
   final busy = false.obs;
 
+  /// Retry re-verifies the same Play purchase with the same Idempotency-Key.
+  final _verify = IdempotentAction();
+  PurchaseResult? _purchase;
+
   Future<void> subscribe() async {
     if (busy.value) return;
     busy.value = true;
     try {
-      final p = await _billing.subscribeChatPass(userId: _api.userId.value ?? '');
-      await _payments.verifyPlayPurchase(p);
+      final p = _purchase ??= await _billing.subscribeChatPass(userId: _api.userId.value ?? '');
+      final r = await _verify.run((k) => _payments.verifyPlayPurchase(p, kind: PurchaseKind.chatPass, idempotencyKey: k));
+      _purchase = null;
+      if (r.pending) {
+        showError(const ApiException(ApiErrorCode.paymentPending));
+        return;
+      }
       final repo = Get.find<ConnectionsRepository>();
       if (repo is MockConnectionsRepository) repo.chatPass = true;
       Get.offNamed(Routes.subscriptionSuccess, arguments: Get.arguments);
+    } on ApiException catch (e) {
+      if (!e.retryable) _purchase = null;
+      showError(e);
     } catch (e) {
       showError(e);
     } finally {
@@ -161,6 +175,27 @@ class NotificationsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    Get.find<ConnectionsRepository>().notifications().then(items.assignAll, onError: showError);
+    load();
+  }
+
+  Future<void> load() async {
+    final repo = Get.find<ConnectionsRepository>();
+    try {
+      items.assignAll(await repo.notifications());
+      if (items.any((n) => !n.read)) {
+        await repo.markRead(items.where((n) => !n.read).map((n) => n.id).toList());
+      }
+    } catch (e) {
+      showError(e);
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (items.isEmpty) return;
+    try {
+      items.addAll(await Get.find<ConnectionsRepository>().notifications(before: items.last.at));
+    } catch (e) {
+      showError(e);
+    }
   }
 }

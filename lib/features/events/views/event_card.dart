@@ -61,8 +61,11 @@ class EventCard extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: Text('${e.joined} joined', style: const TextStyle(fontSize: 12, color: AppColors.textBody))),
-            Pill('${e.spotsLeft} spots left', color: e.spotsLeft <= 3 ? AppColors.crimson : AppColors.success),
+            Expanded(
+                child: Text(e.joined == null ? e.priceLabel : '${e.joined} joined',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textBody))),
+            if (e.spotsLeft != null)
+              Pill('${e.spotsLeft} spots left', color: e.spotsLeft! <= 3 ? AppColors.crimson : AppColors.success),
             const SizedBox(width: 8),
             const Text('View Event', style: TextStyle(color: AppColors.violet, fontWeight: FontWeight.w700, fontSize: 12)),
           ]),

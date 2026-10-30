@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/routes/app_routes.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/idempotency.dart';
 import '../../../core/widgets/ui.dart';
 import '../../billing/data/billing_models.dart';
 import '../../billing/data/payments_repository.dart';
@@ -96,6 +98,18 @@ class EventDetailController extends GetxController {
     }
   }
 
+  Future<void> toggleLike() async {
+    final e = event.value;
+    if (e == null) return;
+    event.value = e.copyWith(liked: !e.liked);
+    try {
+      event.value = await _repo.setLiked(e.id, !e.liked);
+    } catch (err) {
+      event.value = e;
+      showError(err);
+    }
+  }
+
   Future<void> toggleSave() async {
     final e = event.value;
     if (e == null) return;
@@ -122,6 +136,7 @@ class FreeBookingController extends GetxController {
   final ProfileRepository _profile;
   late final SparkEvent event = Get.arguments as SparkEvent;
   final busy = false.obs;
+  final _book = IdempotentAction();
 
   Future<void> confirm() async {
     busy.value = true;
@@ -131,8 +146,14 @@ class FreeBookingController extends GetxController {
         await Get.toNamed(Routes.selfie, arguments: event);
         return;
       }
-      await _events.book(event.id);
+      await _book.run((k) => _events.book(event.id, idempotencyKey: k));
       Get.offNamed(Routes.bookingSuccess, arguments: {'event': event, 'free': true});
+    } on ApiException catch (e) {
+      if (e.error == ApiErrorCode.verificationRequired) {
+        await Get.toNamed(Routes.selfie, arguments: event);
+      } else {
+        showError(e);
+      }
     } catch (e) {
       showError(e);
     } finally {
@@ -150,6 +171,7 @@ class SelfieController extends GetxController {
   late final SparkEvent? event = Get.arguments as SparkEvent?;
   final selfiePath = RxnString();
   final busy = false.obs;
+  final _book = IdempotentAction();
 
   Future<void> capture() async {
     try {
@@ -168,8 +190,15 @@ class SelfieController extends GetxController {
       await _profile.submitSelfie(p);
       final e = event;
       if (e != null) {
-        await _events.book(e.id);
-        Get.offNamed(Routes.bookingSuccess, arguments: {'event': e, 'free': true});
+        try {
+          await _book.run((k) => _events.book(e.id, idempotencyKey: k));
+          Get.offNamed(Routes.bookingSuccess, arguments: {'event': e, 'free': true});
+        } on ApiException catch (err) {
+          // Selfie is reviewed by an admin; booking unlocks once approved.
+          if (err.error != ApiErrorCode.verificationRequired) rethrow;
+          Get.back<void>();
+          showError(err);
+        }
       } else {
         Get.back<void>();
       }
@@ -183,68 +212,157 @@ class SelfieController extends GetxController {
 
 enum PayMethod { upi, card, netBanking }
 
-/// Event Payment: POST /bookings (10-min seat hold) -> Play purchase -> /payments/play/verify.
+/// UI state of the payment screen.
+enum PayState { holding, ready, paying, pending, expired, failed }
+
+/// Event Payment: POST /bookings (seat hold + `play` params) -> Play purchase -> POST /payments/play/verify.
+/// Each user action carries one Idempotency-Key, reused on retry (network/5xx/PLAY_UNAVAILABLE/IN_PROGRESS).
 class PaymentController extends GetxController {
-  PaymentController(this._events, this._billing, this._payments, this._api);
+  PaymentController(this._events, this._billing, this._payments, this._api, {this.pollEvery = const Duration(seconds: 5)});
   final EventsRepository _events;
   final BillingService _billing;
   final PaymentsRepository _payments;
   final ApiClient _api;
+  final Duration pollEvery;
 
   late final SparkEvent event = Get.arguments as SparkEvent;
   final booking = Rxn<Booking>();
   final method = PayMethod.upi.obs;
   final remaining = Duration.zero.obs;
   final busy = false.obs;
+  final state = PayState.holding.obs;
+  PlayPurchaseParams? _play;
+  PurchaseResult? _purchase;
+  final _bookAction = IdempotentAction();
+  final _verifyAction = IdempotentAction();
   Timer? _timer;
+  Timer? _poll;
 
   @override
   void onInit() {
     super.onInit();
-    _hold();
+    hold();
   }
 
   @override
   void onClose() {
     _timer?.cancel();
+    _poll?.cancel();
     super.onClose();
   }
 
-  Future<void> _hold() async {
+  Future<void> hold() async {
+    state.value = PayState.holding;
     try {
-      final b = await _events.book(event.id);
-      booking.value = b;
-      _tick();
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      final r = await _bookAction.run((k) => _events.book(event.id, idempotencyKey: k));
+      _play = r.play ?? _play;
+      _apply(r.booking);
     } catch (e) {
+      state.value = PayState.failed;
       showError(e);
     }
+  }
+
+  void _apply(Booking b) {
+    booking.value = b;
+    switch (b.status) {
+      case BookingStatus.confirmed:
+        _done(b);
+      case BookingStatus.pending:
+        if (state.value != PayState.pending) state.value = PayState.ready;
+        _tick();
+        _timer?.cancel();
+        _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      case BookingStatus.expired:
+        _expire();
+      default:
+        state.value = PayState.failed;
+        showError(const ApiException(ApiErrorCode.eventNotBookable));
+    }
+  }
+
+  void _expire() {
+    _timer?.cancel();
+    _poll?.cancel();
+    remaining.value = Duration.zero;
+    state.value = PayState.expired;
   }
 
   void _tick() {
     final end = booking.value?.holdExpiresAt;
     if (end == null) return;
-    final d = end.difference(DateTime.now());
+    final d = end.difference(clock.now());
     remaining.value = d.isNegative ? Duration.zero : d;
-    if (d.isNegative) _timer?.cancel();
+    if (d.isNegative && state.value == PayState.ready) _expire();
   }
 
-  bool get expired => booking.value?.holdExpiresAt != null && remaining.value == Duration.zero;
+  bool get expired => state.value == PayState.expired;
 
   Future<void> pay() async {
+    if (busy.value) return;
+    if (expired) {
+      // Hold expired: a new booking is a new user action → fresh key.
+      _bookAction.reset();
+      _verifyAction.reset();
+      _purchase = null;
+      return hold();
+    }
     final b = booking.value;
     if (b == null) return;
-    if (expired) return showError(const ApiException(ApiErrorCode.bookingExpired));
     busy.value = true;
+    state.value = PayState.paying;
     try {
-      final purchase = await _billing.buyEventTicket(
-          productId: event.playProductId ?? BillingProducts.eventTicket199, userId: _api.userId.value ?? '', bookingId: b.id);
-      await _payments.verifyPlayPurchase(purchase, bookingId: b.id);
-      Get.offNamed(Routes.bookingSuccess, arguments: {'event': event, 'free': false, 'bookingId': b.id});
+      final play = _play;
+      final p = _purchase ??= await _billing.buyEventTicket(
+          productId: play?.productId ?? event.playProductId ?? BillingProducts.eventTicket199,
+          userId: play?.obfuscatedAccountId ?? _api.userId.value ?? '',
+          bookingId: play?.obfuscatedProfileId ?? b.id);
+      final r = await _verifyAction
+          .run((k) => _payments.verifyPlayPurchase(p, kind: PurchaseKind.ticket, bookingId: b.id, idempotencyKey: k));
+      if (r.pending) {
+        // UPI / pending purchase: server extended the hold; poll until Play settles.
+        state.value = PayState.pending;
+        if (r.booking != null) _apply(r.booking!);
+        _startPolling();
+      } else {
+        _done(r.booking ?? b);
+      }
+    } on ApiException catch (e) {
+      if (!e.retryable) _purchase = null;
+      if (e.error == ApiErrorCode.eventFullRefunded || e.error == ApiErrorCode.bookingExpired) {
+        _expire();
+      } else {
+        state.value = PayState.ready;
+      }
+      showError(e);
     } catch (e) {
+      state.value = PayState.ready;
       showError(e);
     } finally {
       busy.value = false;
     }
+  }
+
+  void _startPolling() {
+    _poll?.cancel();
+    _poll = Timer.periodic(pollEvery, (_) => refreshStatus());
+  }
+
+  /// Re-reads `myBooking` from GET /events/:id (pending → confirmed | expired).
+  Future<void> refreshStatus() async {
+    try {
+      final b = (await _events.get(event.id)).myBooking;
+      if (b == null) return;
+      if (b.status == BookingStatus.confirmed) return _done(b);
+      if (b.status == BookingStatus.expired || b.status == BookingStatus.cancelled) return _expire();
+      booking.value = b;
+    } catch (_) {}
+  }
+
+  void _done(Booking b) {
+    _timer?.cancel();
+    _poll?.cancel();
+    if (isClosed) return;
+    Get.offNamed(Routes.bookingSuccess, arguments: {'event': event, 'free': b.amountInPaise == 0, 'bookingId': b.id});
   }
 }

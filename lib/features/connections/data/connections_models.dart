@@ -77,17 +77,47 @@ class ChatMessage {
       at: DateTime.parse(j['createdAt'] as String));
 }
 
+/// GET /notifications item `{id, type, title, body, data, read, createdAt}`.
+enum NotificationType { bookingConfirmed, eventReminder, eventCancelled, refundProcessed, refundRejected, chatPassExpiring, other }
+
+NotificationType notificationTypeFrom(String? s) => switch (s) {
+      'booking_confirmed' => NotificationType.bookingConfirmed,
+      'event_reminder' => NotificationType.eventReminder,
+      'event_cancelled' => NotificationType.eventCancelled,
+      'refund_processed' => NotificationType.refundProcessed,
+      'refund_rejected' => NotificationType.refundRejected,
+      'chat_pass_expiring' => NotificationType.chatPassExpiring,
+      _ => NotificationType.other,
+    };
+
 class AppNotification {
-  const AppNotification({required this.id, required this.title, required this.body, required this.at, this.read = false});
+  const AppNotification(
+      {required this.id,
+      required this.title,
+      required this.body,
+      required this.at,
+      this.read = false,
+      this.type = NotificationType.other,
+      this.data = const {}});
   final String id;
+  final NotificationType type;
   final String title;
   final String body;
+  final Map<String, dynamic> data;
   final DateTime at;
   final bool read;
+
+  /// e.g. `data.eventId` / `data.bookingId` for deep links.
+  String? get eventId => data['eventId'] as String?;
+
+  AppNotification markedRead() => AppNotification(id: id, title: title, body: body, at: at, read: true, type: type, data: data);
+
   factory AppNotification.fromJson(Map<String, dynamic> j) => AppNotification(
       id: j['id'] as String,
+      type: notificationTypeFrom(j['type'] as String?),
       title: j['title'] as String,
-      body: j['body'] as String,
+      body: j['body'] as String? ?? '',
+      data: (j['data'] as Map?)?.cast<String, dynamic>() ?? const {},
       at: DateTime.parse(j['createdAt'] as String),
       read: j['read'] as bool? ?? false);
 }

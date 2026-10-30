@@ -16,12 +16,18 @@ class EventDetailView extends GetView<EventDetailController> {
         final e = controller.event.value;
         return Scaffold(
           appBar: simpleAppBar('Event Details', actions: [
-            if (e != null)
+            if (e != null) ...[
+              IconButton(
+                key: const Key('detail_like'),
+                icon: Icon(e.liked ? Icons.favorite : Icons.favorite_border, color: AppColors.primary),
+                onPressed: controller.toggleLike,
+              ),
               IconButton(
                 key: const Key('detail_save'),
-                icon: Icon(e.saved ? Icons.favorite : Icons.favorite_border, color: AppColors.primary),
+                icon: Icon(e.saved ? Icons.bookmark : Icons.bookmark_border, color: AppColors.primary),
                 onPressed: controller.toggleSave,
               ),
+            ],
           ]),
           body: e == null ? const Center(child: CircularProgressIndicator()) : _body(e),
           bottomNavigationBar: e == null
@@ -62,19 +68,20 @@ class EventDetailView extends GetView<EventDetailController> {
         const SizedBox(height: 16),
         Text(e.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textTitle)),
         const SizedBox(height: 8),
-        Row(children: [
-          Avatar(e.host, size: 32),
-          const SizedBox(width: 8),
-          Expanded(child: Text('Hosted by ${e.host}', style: const TextStyle(fontWeight: FontWeight.w600))),
-        ]),
+        if (e.host.isNotEmpty)
+          Row(children: [
+            Avatar(e.host, size: 32),
+            const SizedBox(width: 8),
+            Expanded(child: Text('Hosted by ${e.host}', style: const TextStyle(fontWeight: FontWeight.w600))),
+          ]),
         const SizedBox(height: 12),
         KeyValueRow('When', fmtWhen(e.startsAt)),
-        KeyValueRow('Where', '${e.venue}, ${e.city}'),
+        KeyValueRow('Where', [e.venue, e.city].where((x) => x.isNotEmpty).join(', ')),
         const SizedBox(height: 12),
         Row(children: [
-          _stat('${e.joined}', 'Joined'),
-          _stat('${e.spotsLeft}', 'Spots left'),
-          _stat('3 min', 'Per date'),
+          if (e.joined != null) _stat('${e.joined}', 'Joined'),
+          _stat(e.spotsLeft == null ? '—' : '${e.spotsLeft}', 'Spots left'),
+          _stat('${e.roundMinutes} min', 'Per date'),
         ]),
         const SizedBox(height: 20),
         const Text('Zero-pressure matchmaking', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),

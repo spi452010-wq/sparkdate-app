@@ -26,8 +26,10 @@ class InitialBinding extends Bindings {
     Get.put<BillingService>(useMockApi ? MockBillingService() : PlayBillingService(), permanent: true);
     Get.put<AuthRepository>(useMockApi ? MockAuthRepository() : RemoteAuthRepository(api.dio), permanent: true);
     Get.put<ProfileRepository>(useMockApi ? MockProfileRepository() : RemoteProfileRepository(api.dio), permanent: true);
-    Get.put<EventsRepository>(useMockApi ? MockEventsRepository() : RemoteEventsRepository(api.dio), permanent: true);
-    Get.put<PaymentsRepository>(useMockApi ? MockPaymentsRepository() : RemotePaymentsRepository(api.dio), permanent: true);
+    final events = Get.put<EventsRepository>(useMockApi ? MockEventsRepository() : RemoteEventsRepository(api.dio), permanent: true);
+    Get.put<PaymentsRepository>(
+        useMockApi ? MockPaymentsRepository(events: events as MockEventsRepository) : RemotePaymentsRepository(api.dio),
+        permanent: true);
     Get.put<ConnectionsRepository>(
         useMockApi ? MockConnectionsRepository() : RemoteConnectionsRepository(api.dio, () => api.userId.value ?? ''),
         permanent: true);

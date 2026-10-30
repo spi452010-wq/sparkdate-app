@@ -28,18 +28,59 @@ void main() {
       expect(r.map((e) => e.city).toSet(), {'Bhopal'});
     });
 
-    test('paid booking is pending with a 10 min hold; free is confirmed; double booking fails', () async {
-      final paid = await repo.book('evt_2');
-      expect(paid.status, BookingStatus.pending);
-      expect(paid.holdExpiresAt, isNotNull);
-      final free = await repo.book('evt_4');
-      expect(free.status, BookingStatus.confirmed);
-      expect(() => repo.book('evt_4'), throwsA(isA<ApiException>()));
+    test('paid booking is pending with a hold + play params; free is confirmed; rebooking returns the active booking', () async {
+      final paid = await repo.book('evt_2', idempotencyKey: 'key-paid-0001');
+      expect(paid.booking.status, BookingStatus.pending);
+      expect(paid.booking.holdExpiresAt, isNotNull);
+      expect(paid.play!.obfuscatedProfileId, paid.booking.id);
+      final free = await repo.book('evt_4', idempotencyKey: 'key-free-0001');
+      expect(free.booking.status, BookingStatus.confirmed);
+      expect(free.play, isNull);
+      final again = await repo.book('evt_4', idempotencyKey: 'key-free-0002');
+      expect(again.created, isFalse);
+      expect(again.booking.id, free.booking.id);
+    });
+
+    test('same idempotency key replays; invalid key rejected; key reused on another route fails', () async {
+      final a = await repo.book('evt_2', idempotencyKey: 'same-key-123');
+      final b = await repo.book('evt_2', idempotencyKey: 'same-key-123');
+      expect(identical(a, b), isTrue);
+      expect(() => repo.book('evt_5', idempotencyKey: 'short'), throwsA(isA<ApiException>()));
+      await expectLater(repo.requestRefund('bkg_0', 'no matches', idempotencyKey: 'same-key-123'),
+          throwsA(isA<ApiException>().having((e) => e.error, 'error', ApiErrorCode.idempotencyKeyReused)));
+    });
+
+    test('hold expiry -> expired; verify after expiry re-seats or EVENT_FULL_REFUNDED', () async {
+      var now = DateTime(2026, 10, 30, 12);
+      final r = MockEventsRepository(latency: Duration.zero, now: () => now)..holdDuration = const Duration(minutes: 1);
+      final b = (await r.book('evt_3', idempotencyKey: 'hold-key-001')).booking;
+      now = now.add(const Duration(minutes: 2));
+      expect((await r.get('evt_3')).myBooking, isNull);
+      expect((await r.myBookings()).past.single.status, BookingStatus.expired);
+      expect(r.settle(b.id).status, BookingStatus.confirmed);
+    });
+
+    test('pending UPI keeps the booking pending with an extended hold', () async {
+      final b = (await repo.book('evt_2', idempotencyKey: 'upi-key-0001')).booking;
+      final p = repo.settle(b.id, pending: true);
+      expect(p.status, BookingStatus.pending);
+      expect(p.holdExpiresAt!.isAfter(b.holdExpiresAt!), isTrue);
+    });
+
+    test('cancel only pending; refund request on eligible booking', () async {
+      final b = (await repo.book('evt_2', idempotencyKey: 'cancel-key-01')).booking;
+      expect((await repo.cancelBooking(b.id)).status, BookingStatus.cancelled);
+      await expectLater(repo.cancelBooking('bkg_0'),
+          throwsA(isA<ApiException>().having((e) => e.error, 'error', ApiErrorCode.bookingNotCancellable)));
+      final refund = repo.settle(repo.settle('bkg_0').id);
+      expect(refund.status, BookingStatus.confirmed);
     });
 
     test('save toggles', () async {
       expect((await repo.setSaved('evt_5', true)).saved, isTrue);
       expect((await repo.get('evt_5')).saved, isTrue);
+      expect((await repo.savedEvents()).map((e) => e.id), ['evt_5']);
+      expect((await repo.setLiked('evt_5', true)).liked, isTrue);
     });
   });
 
@@ -48,10 +89,10 @@ void main() {
     setUp(() {
       Get.testMode = true;
       Get.put(ApiClient()).userId.value = 'u1';
-      Get.put<EventsRepository>(MockEventsRepository(latency: Duration.zero));
+      final ev = Get.put<EventsRepository>(MockEventsRepository(latency: Duration.zero)) as MockEventsRepository;
       Get.put<ProfileRepository>(MockProfileRepository(latency: Duration.zero));
       Get.put<BillingService>(MockBillingService());
-      payments = Get.put<PaymentsRepository>(MockPaymentsRepository()) as MockPaymentsRepository;
+      payments = Get.put<PaymentsRepository>(MockPaymentsRepository(events: ev)) as MockPaymentsRepository;
     });
     tearDown(Get.reset);
 
@@ -92,6 +133,27 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text("You're Booked!"), findsOneWidget);
       expect(payments.verified.single.productId, 'event_ticket_199');
+    });
+
+    testWidgets('UPI pending: verify 202 -> pending state -> status check -> success', (t) async {
+      t.view.physicalSize = const Size(1080, 4000);
+      t.view.devicePixelRatio = 2.5;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(app('/start'));
+      final repo = Get.find<EventsRepository>() as MockEventsRepository;
+      final e = await repo.get('evt_2');
+      payments.nextPending = true;
+      Get.toNamed(Routes.payment, arguments: e);
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('pay_now')));
+      await t.pumpAndSettle();
+      expect(find.textContaining('PAYMENT PENDING'), findsOneWidget);
+      final b = (await repo.get('evt_2')).myBooking!;
+      repo.settle(b.id);
+      await t.tap(find.byKey(const Key('pay_now')));
+      await t.pumpAndSettle();
+      expect(find.text("You're Booked!"), findsOneWidget);
+      expect(payments.keys, hasLength(1));
     });
   });
 }

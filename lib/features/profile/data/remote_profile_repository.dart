@@ -49,7 +49,10 @@ class RemoteProfileRepository implements ProfileRepository {
   @override
   Future<ProfileView> updateProfile(Map<String, dynamic> changes) async {
     try {
-      final r = await _dio.patch<Map<String, dynamic>>('/profile/me', data: changes);
+      // PATCH /profile/me: only these are editable; gender and dob are locked server-side.
+      const editable = {'fullName', 'interestedIn', 'bio', 'city', 'interests', 'photos'};
+      final body = {for (final e in changes.entries) if (editable.contains(e.key)) e.key: e.value};
+      final r = await _dio.patch<Map<String, dynamic>>('/profile/me', data: body);
       return ProfileView.fromJson(r.data!);
     } on DioException catch (e) {
       throw mapDioError(e);

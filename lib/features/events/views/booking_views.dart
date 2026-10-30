@@ -125,7 +125,13 @@ class PaymentView extends GetView<PaymentController> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  controller.booking.value == null ? 'Reserving your spot…' : (controller.expired ? 'SPOT HOLD EXPIRED' : 'SPOT RESERVED FOR $mm:$ss'),
+                  switch (controller.state.value) {
+                    PayState.holding => 'Reserving your spot…',
+                    PayState.expired => 'SPOT HOLD EXPIRED',
+                    PayState.pending => 'PAYMENT PENDING • SPOT HELD FOR $mm:$ss',
+                    PayState.failed => 'Could not reserve a spot',
+                    _ => 'SPOT RESERVED FOR $mm:$ss',
+                  },
                   key: const Key('hold_timer'),
                   style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary),
                 ),
@@ -161,9 +167,19 @@ class PaymentView extends GetView<PaymentController> {
           padding: const EdgeInsets.all(20),
           child: Obx(() => GradientButton(
                 key: const Key('pay_now'),
-                label: 'Pay ${e.priceLabel}',
-                loading: controller.busy.value,
-                onPressed: controller.booking.value == null ? null : controller.pay,
+                label: switch (controller.state.value) {
+                  PayState.expired => 'Hold expired — Book again',
+                  PayState.failed => 'Try again',
+                  PayState.pending => 'Check payment status',
+                  _ => 'Pay ${e.priceLabel}',
+                },
+                loading: controller.busy.value || controller.state.value == PayState.holding,
+                onPressed: switch (controller.state.value) {
+                  PayState.holding || PayState.paying => null,
+                  PayState.failed => controller.hold,
+                  PayState.pending => controller.refreshStatus,
+                  _ => controller.pay,
+                },
               )),
         ),
       ),
