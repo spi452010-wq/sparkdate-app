@@ -95,6 +95,11 @@ void main() {
       expect(LiveUpdate.fromSocket('event:ended', {'eventId': 'e1', 'datesCompleted': 2}),
           isA<EventEndedUpdate>().having((u) => u.datesCompleted, 'n', 2));
       expect(LiveUpdate.fromSocket('unknown', {}), isNull);
+      expect(LiveUpdate.fromSocket('date:spark', {'dateId': 'd1'}), isA<SparkReceivedUpdate>());
+      // Server card for a missing profile: every field but id may be null.
+      final nulls = {'id': 'u9', 'fullName': null, 'age': null, 'city': null, 'photoUrl': null, 'interests': <String>[], 'bio': null};
+      expect((LiveUpdate.fromSocket('match:found', {...matchJson(DateTime.utc(2026)), 'partner': nulls})! as MatchFoundUpdate).match.bio, '');
+      expect((LiveUpdate.fromSocket('connection:mutual', {'connectionId': 'c1', 'partner': nulls})! as ConnectionMutualUpdate).partner.bio, '');
     });
   });
 
@@ -138,13 +143,13 @@ void main() {
 
     testWidgets('rejected join and rejected decision surface errors', (t) async {
       final s = FakeLiveSocket()
-        ..acks['event:join'] = {'ok': false, 'error': 'NO_CONFIRMED_BOOKING'}
+        ..acks['event:join'] = {'ok': false, 'error': 'NOT_BOOKED'}
         ..acks['date:decision'] = {'ok': false, 'error': 'DECISION_WINDOW_CLOSED'};
       final repo = SocketLiveSessionRepository(s, FixedServerTime(Duration.zero));
       final got = <LiveUpdate>[];
       repo.join('e1').listen(got.add);
       await t.pump();
-      expect(got.single, isA<JoinRejectedUpdate>().having((u) => u.error, 'e', 'NO_CONFIRMED_BOOKING'));
+      expect(got.single, isA<JoinRejectedUpdate>().having((u) => u.error, 'e', 'NOT_BOOKED'));
       await expectLater(repo.decide('d1', Decision.like), throwsA(isA<LiveAckException>()));
       expect(s.sent.last.$1, 'date:decision');
       expect(s.sent.last.$2, {'dateId': 'd1', 'decision': 'like'});
@@ -285,6 +290,21 @@ void main() {
       expect(s.count('event:leave'), 0);
       await done(t);
     });
+
+    for (final code in ['DATE_NOT_FOUND', 'DATE_NOT_ACTIVE', 'VALIDATION_ERROR']) {
+      testWidgets('date:leave ack $code (stale date) -> back to the waiting room', (t) async {
+        s.acks['date:leave'] = {'ok': false, 'error': code};
+        await inCall(t);
+        await t.tap(find.byKey(const Key('call_end')));
+        await settle(t);
+        expect(s.count('date:leave'), 1);
+        expect(Get.currentRoute, Routes.waitingRoom);
+        expect(video.connected.value, isFalse);
+        expect(s.count('event:leave'), 0);
+        await t.pump(const Duration(seconds: 4));
+        await done(t);
+      });
+    }
 
     testWidgets('ending a date early sends date:leave {dateId}, not event:leave', (t) async {
       await inCall(t);

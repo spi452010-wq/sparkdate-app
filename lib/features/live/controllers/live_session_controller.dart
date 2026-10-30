@@ -99,6 +99,8 @@ class LiveSessionController extends GetxController {
           partnerEnded.value = false;
           Get.offNamed(Routes.earlyDisconnect);
         }
+      case SparkReceivedUpdate():
+        if (_isCurrent(u.dateId)) Get.rawSnackbar(message: '${match.value?.name ?? 'Your match'} sent you a spark ✨');
       case JoinRejectedUpdate():
         showError(u.error);
     }
@@ -183,6 +185,13 @@ class LiveSessionController extends GetxController {
     if (m == null) return;
     try {
       await _repo.endDate(m.dateId);
+    } on LiveAckException catch (e) {
+      if (e.staleDate) {
+        // The date is already over on the server (partner left, round ended, or unknown id): just go back to the queue.
+        endedByMe.value = false;
+        Get.rawSnackbar(message: 'This date has already ended.');
+        return backToQueue();
+      }
     } catch (_) {}
     Get.offNamed(Routes.earlyDisconnect);
   }

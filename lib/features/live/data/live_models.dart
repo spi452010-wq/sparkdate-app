@@ -106,11 +106,18 @@ sealed class LiveUpdate {
       'round:ended' => RoundEndedUpdate(dateId: j['dateId'] as String, decisionDeadline: _time(j['decisionDeadline'])),
       'partner:left' => PartnerLeftUpdate(dateId: j['dateId'] as String, reason: j['reason'] as String? ?? 'left'),
       'connection:mutual' => ConnectionMutualUpdate(connectionId: j['connectionId'] as String, partner: LivePartner.fromJson(_map(j['partner']))),
+      'date:spark' => SparkReceivedUpdate(dateId: j['dateId'] as String? ?? ''),
       'no:match' => NoMatchUpdate(round: (j['round'] as num?)?.toInt() ?? 0),
       'event:ended' => EventEndedUpdate(eventId: j['eventId'] as String? ?? '', datesCompleted: (j['datesCompleted'] as num?)?.toInt() ?? 0),
       _ => null,
     };
   }
+}
+
+/// Partner sent a spark (`date:spark {dateId}` from the server).
+class SparkReceivedUpdate extends LiveUpdate {
+  const SparkReceivedUpdate({required this.dateId});
+  final String dateId;
 }
 
 class LobbyStateUpdate extends LiveUpdate {
@@ -192,6 +199,9 @@ enum Decision { like, save, pass }
 class LiveAckException implements Exception {
   const LiveAckException(this.error);
   final String error;
+
+  /// `date:*` acks for a date that no longer exists / already ended (or a malformed/stale id).
+  bool get staleDate => error == 'DATE_NOT_FOUND' || error == 'DATE_NOT_ACTIVE' || error == 'VALIDATION_ERROR';
   @override
   String toString() => error;
 }

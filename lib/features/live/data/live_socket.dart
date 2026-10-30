@@ -46,7 +46,7 @@ class SocketIoLiveSocket implements LiveSocket {
   final _events = StreamController<(String, Object?)>.broadcast();
 
   static const _serverEvents = [
-    'lobby:state', 'match:found', 'round:started', 'round:ended', 'partner:left', 'connection:mutual', 'no:match', 'event:ended', //
+    'lobby:state', 'match:found', 'round:started', 'round:ended', 'partner:left', 'connection:mutual', 'no:match', 'event:ended', 'date:spark', //
   ];
 
   @override
