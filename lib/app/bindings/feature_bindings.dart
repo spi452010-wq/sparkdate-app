@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 
 import '../../features/auth/controllers/auth_controller.dart';
+import '../../features/events/controllers/events_controllers.dart';
+import '../../features/home/controllers/home_controller.dart';
 import '../../features/onboarding/controllers/onboarding_controller.dart';
 import '../../features/profile/controllers/profile_controller.dart';
 import '../../features/splash/controllers/splash_controller.dart';
@@ -26,4 +28,34 @@ class SplashBinding extends Bindings {
   void dependencies() {
     Get.put(SplashController());
   }
+}
+
+class HomeBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(() => HomeController(Get.find(), Get.find()));
+}
+
+class EventsBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(() => EventsController(Get.find()));
+}
+
+class EventDetailBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(() => EventDetailController(Get.find()));
+}
+
+class FreeBookingBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(() => FreeBookingController(Get.find(), Get.find()));
+}
+
+class SelfieBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(() => SelfieController(Get.find(), Get.find()));
+}
+
+class PaymentBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(() => PaymentController(Get.find(), Get.find(), Get.find(), Get.find()));
 }

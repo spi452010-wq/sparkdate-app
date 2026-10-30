@@ -14,6 +14,8 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10
   image_picker: ^1.1.2
+  in_app_purchase: ^3.2.3
+  livekit_client: ^2.3.6
 
 dev_dependencies:
   flutter_test:

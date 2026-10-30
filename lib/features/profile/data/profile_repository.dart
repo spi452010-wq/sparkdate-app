@@ -8,4 +8,8 @@ abstract interface class ProfileRepository {
   Future<ProfileView> saveProfile(ProfileDraft draft);
 
   Future<ProfileView> getMe();
+
+  /// POST /media/selfie (multipart) -> `{ key }`, then POST /profile/me/verification `{ selfieKey }`
+  /// -> 202 `{ status: "pending" }`. Returns the verification status.
+  Future<String> submitSelfie(String path);
 }

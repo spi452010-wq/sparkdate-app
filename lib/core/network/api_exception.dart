@@ -17,6 +17,15 @@ enum ApiErrorCode {
   storageFull('STORAGE_FULL', 'Upload failed. Please try again later.'),
   mediaNotOwned('MEDIA_NOT_OWNED', 'Photo upload failed. Please re-upload.'),
   profileAlreadyCompleted('PROFILE_ALREADY_COMPLETED', 'Your profile is already complete.'),
+  eventFull('EVENT_FULL', 'This event is full.'),
+  alreadyBooked('ALREADY_BOOKED', 'You have already booked this event.'),
+  verificationRequired('VERIFICATION_REQUIRED', 'Complete selfie verification to continue.'),
+  bookingExpired('BOOKING_EXPIRED', 'Your seat hold expired. Please book again.'),
+  purchaseCancelled('PURCHASE_CANCELLED', 'Payment was cancelled.'),
+  paymentFailed('PAYMENT_FAILED', 'Payment could not be completed.'),
+  billingUnavailable('BILLING_UNAVAILABLE', 'Google Play Billing is not available on this device.'),
+  chatPassRequired('CHAT_PASS_REQUIRED', 'Get a Chat Pass to keep chatting.'),
+  refundNotEligible('REFUND_NOT_ELIGIBLE', 'This booking is not eligible for a refund.'),
   validation('VALIDATION_ERROR', 'Please check the details you entered.'),
   unknown('UNKNOWN', 'Something went wrong. Please try again.');
 

@@ -45,6 +45,18 @@ class RemoteProfileRepository implements ProfileRepository {
       throw mapDioError(e);
     }
   }
+
+  @override
+  Future<String> submitSelfie(String path) async {
+    try {
+      final form = FormData.fromMap({'file': await MultipartFile.fromFile(path, filename: path.split('/').last)});
+      final up = await _dio.post<Map<String, dynamic>>('/media/selfie', data: form);
+      final r = await _dio.post<Map<String, dynamic>>('/profile/me/verification', data: {'selfieKey': up.data!['key']});
+      return r.data!['status'] as String;
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
 }
 
 /// Stable image cache key: signed URLs change on every read, the photo key does not.

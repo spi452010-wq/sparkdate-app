@@ -43,5 +43,14 @@ class MockProfileRepository implements ProfileRepository {
     return ProfileView.fromJson(_saved ??
         {'id': 'mock_user', 'role': 'user', 'profileCompleted': false, 'verification': {'status': 'none'}});
   }
-}
 
+  String verification = 'none';
+
+  @override
+  Future<String> submitSelfie(String path) async {
+    await _delay();
+    verification = 'pending';
+    if (_saved != null) _saved!['verification'] = {'status': verification};
+    return verification;
+  }
+}
