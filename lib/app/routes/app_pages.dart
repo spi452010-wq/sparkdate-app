@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../features/auth/views/login_view.dart';
 import '../../features/auth/views/verify_otp_view.dart';
+import '../../features/connections/views/connections_views.dart';
 import '../../features/events/views/booking_views.dart';
 import '../../features/events/views/event_detail_view.dart';
 import '../../features/events/views/events_view.dart';
@@ -40,11 +41,16 @@ abstract final class AppPages {
     GetPage(name: Routes.callEnded, page: () => const CallEndedView(), binding: LiveBinding()),
     GetPage(name: Routes.waitingResponse, page: () => const WaitingResponseView(), binding: LiveBinding()),
     GetPage(name: Routes.mutualConnection, page: () => const MutualConnectionView(), binding: LiveBinding()),
-    GetPage(name: Routes.connectionDetail, page: () => _todo('Profile')),
-    GetPage(name: Routes.chatSubscription, page: () => _todo('Chat Pass')),
+    // Connections & chat
+    GetPage(name: Routes.likes, page: () => const LikesView(), binding: ConnectionsBinding()),
+    GetPage(name: Routes.saved, page: () => const SavedConnectionsView(), binding: ConnectionsBinding()),
+    GetPage(name: Routes.connectionDetail, page: () => const ConnectionDetailView(), binding: ConnectionDetailBinding()),
+    GetPage(name: Routes.chats, page: () => const ChatsView(), binding: ConnectionsBinding()),
+    GetPage(name: Routes.chat, page: () => const ChatView(), binding: ChatBinding()),
+    GetPage(name: Routes.chatSubscription, page: () => const ChatSubscriptionView(), binding: ChatSubscriptionBinding()),
+    GetPage(name: Routes.subscriptionSuccess, page: () => const SubscriptionSuccessView()),
+    GetPage(name: Routes.notifications, page: () => const NotificationsView(), binding: NotificationsBinding()),
     GetPage(name: Routes.refund, page: () => _todo('Refund')),
-    GetPage(name: Routes.chats, page: () => _todo('Chat')),
-    GetPage(name: Routes.notifications, page: () => _todo('Notifications')),
     GetPage(name: Routes.profile, page: () => _todo('Profile')),
   ];
 }

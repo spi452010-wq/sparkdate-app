@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../features/connections/controllers/connections_controllers.dart';
 import '../../features/auth/controllers/auth_controller.dart';
 import '../../features/events/controllers/events_controllers.dart';
 import '../../features/home/controllers/home_controller.dart';
@@ -69,4 +70,29 @@ class LiveBinding extends Bindings {
       Get.put(LiveSessionController(Get.find(), Get.find()), permanent: true);
     }
   }
+}
+
+class ConnectionsBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(ConnectionsController.new);
+}
+
+class ConnectionDetailBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(ConnectionDetailController.new);
+}
+
+class ChatBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(ChatController.new);
+}
+
+class ChatSubscriptionBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(ChatSubscriptionController.new);
+}
+
+class NotificationsBinding extends Bindings {
+  @override
+  void dependencies() => Get.lazyPut(NotificationsController.new);
 }
