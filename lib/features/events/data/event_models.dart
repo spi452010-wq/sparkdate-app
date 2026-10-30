@@ -247,17 +247,18 @@ class Booking {
 
 /// `play` block of POST /bookings: pass to BillingFlowParams.
 class PlayPurchaseParams {
-  const PlayPurchaseParams({required this.productId, required this.obfuscatedAccountId, required this.obfuscatedProfileId});
+  const PlayPurchaseParams({required this.productId, required this.obfuscatedAccountId, this.obfuscatedProfileId});
   final String productId;
   final String obfuscatedAccountId;
-  final String obfuscatedProfileId;
+  /// Dropped by the server in 79b4c97; tolerated if an older server still sends it.
+  final String? obfuscatedProfileId;
   factory PlayPurchaseParams.fromJson(Map<String, dynamic> j) => PlayPurchaseParams(
         productId: j['productId'] as String,
         obfuscatedAccountId: j['obfuscatedAccountId'] as String,
-        obfuscatedProfileId: j['obfuscatedProfileId'] as String,
+        obfuscatedProfileId: j['obfuscatedProfileId'] as String?,
       );
   Map<String, dynamic> toJson() =>
-      {'productId': productId, 'obfuscatedAccountId': obfuscatedAccountId, 'obfuscatedProfileId': obfuscatedProfileId};
+      {'productId': productId, 'obfuscatedAccountId': obfuscatedAccountId, if (obfuscatedProfileId != null) 'obfuscatedProfileId': obfuscatedProfileId};
 }
 
 /// POST /bookings → `201 {booking, play?}` (new) or `200 {booking}` (already active).

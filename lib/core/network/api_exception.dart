@@ -37,6 +37,7 @@ enum ApiErrorCode {
   refundRejected('REFUND_REJECTED', 'Your refund request was rejected.'),
   purchaseInvalid('PURCHASE_INVALID', 'We could not verify this purchase.'),
   productMismatch('PRODUCT_MISMATCH', 'We could not verify this purchase.'),
+  bookingNotPending('BOOKING_NOT_PENDING', 'This booking is no longer waiting for payment. Refreshing its status…'),
   purchaseAlreadyUsed('PURCHASE_ALREADY_USED', 'This purchase was already used.'),
   eventFullRefunded('EVENT_FULL_REFUNDED', 'Your seat hold expired and the event filled up. Your payment is being refunded.'),
   playUnavailable('PLAY_UNAVAILABLE', 'Google Play is unavailable. Please try again shortly.'),

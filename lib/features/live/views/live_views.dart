@@ -42,14 +42,14 @@ class _WaitingRoomViewState extends State<WaitingRoomView> with SingleTickerProv
           decoration: const BoxDecoration(gradient: AppColors.splashBackground),
           child: SafeArea(
             child: Obx(() {
-              final q = c.queue.value;
+              final q = c.lobby.value;
               return Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(children: [
                   Row(children: [
                     IconButton(key: const Key('leave_queue'), icon: const Icon(Icons.close, color: Colors.white), onPressed: c.leave),
                     const Spacer(),
-                    Pill('Queue Active • Event #${q?.eventNo ?? '—'}', color: Colors.white),
+                    Pill('Queue Active • Round ${q?.round ?? 1}', color: Colors.white),
                   ]),
                   const Spacer(),
                   ScaleTransition(
@@ -63,6 +63,12 @@ class _WaitingRoomViewState extends State<WaitingRoomView> with SingleTickerProv
                   ),
                   const SizedBox(height: 24),
                   const Text('Finding your best match...', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                  if (c.sittingOut.value)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text('No match this round — you get priority next round.', key: Key('no_match'), style: TextStyle(color: Colors.white70)),
+                    ),
+                  if (c.reconnecting.value) const Padding(padding: EdgeInsets.only(top: 8), child: Pill('Reconnecting…', color: Colors.white)),
                   const SizedBox(height: 8),
                   Text('${q?.waiting ?? 0} singles waiting', style: const TextStyle(color: Colors.white70)),
                   const Spacer(),
@@ -70,8 +76,8 @@ class _WaitingRoomViewState extends State<WaitingRoomView> with SingleTickerProv
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(color: Colors.white.withOpacity(.12), borderRadius: BorderRadius.circular(16)),
                     child: Row(children: [
-                      const Expanded(child: Text('MATCH ATTEMPTS', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 12))),
-                      Text('${q?.attempt ?? 1} of ${q?.maxAttempts ?? 3}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                      const Expanded(child: Text('NEXT ROUND', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 12))),
+                      Text(q?.nextRoundAt == null ? '—' : mmss(q!.nextRoundAt!.difference(c.serverNow).isNegative ? Duration.zero : q.nextRoundAt!.difference(c.serverNow)), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
                     ]),
                   ),
                 ]),
@@ -168,6 +174,8 @@ class LiveCallView extends GetView<LiveSessionController> {
                     Expanded(child: Text(m == null ? '' : '${m.name}, ${m.age}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
                     Text(mmss(controller.remaining.value), key: const Key('call_timer'), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                   ]),
+                  if (controller.reconnecting.value)
+                    const Padding(padding: EdgeInsets.only(top: 12), child: Pill('Reconnecting… (20 s)', key: Key('reconnecting'), color: Colors.white)),
                   const Spacer(),
                   if (controller.inIntro.value && m != null)
                     Container(
@@ -177,7 +185,7 @@ class LiveCallView extends GetView<LiveSessionController> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Say hi to ${m.name}! 👋', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
-                        Text(m.bio, style: const TextStyle(color: Colors.white70)),
+                        if (m.bio.isNotEmpty) Text(m.bio, style: const TextStyle(color: Colors.white70)),
                         const SizedBox(height: 4),
                         Text('Ice-breaker: ask about ${m.interests.isEmpty ? 'their weekend' : m.interests.first.toLowerCase()}',
                             style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic)),
@@ -187,7 +195,7 @@ class LiveCallView extends GetView<LiveSessionController> {
                     _btn(v.micOn.value ? Icons.mic : Icons.mic_off, v.toggleMic, 'mic'),
                     _btn(v.camOn.value ? Icons.videocam : Icons.videocam_off, v.toggleCamera, 'cam'),
                     _btn(v.speakerOn.value ? Icons.volume_up : Icons.hearing, v.toggleSpeaker, 'speaker'),
-                    _btn(Icons.auto_awesome, () => Get.rawSnackbar(message: 'Spark sent ✨'), 'spark', color: AppColors.violet),
+                    _btn(Icons.auto_awesome, controller.sendSpark, 'spark', color: AppColors.violet),
                     _btn(Icons.call_end, controller.endEarly, 'end', color: AppColors.crimson),
                   ]),
                 ]),

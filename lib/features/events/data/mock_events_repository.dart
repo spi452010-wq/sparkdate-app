@@ -224,7 +224,7 @@ class MockEventsRepository implements EventsRepository {
           play: e.isFree
               ? null
               : PlayPurchaseParams(
-                  productId: e.playProductId ?? 'event_ticket_199', obfuscatedAccountId: 'u_mock', obfuscatedProfileId: id),
+                  productId: e.playProductId ?? 'event_ticket_199', obfuscatedAccountId: 'u_mock'),
         );
       });
 

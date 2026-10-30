@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sparkdate/app/bindings/feature_bindings.dart';
 import 'package:sparkdate/app/routes/app_routes.dart';
+import 'package:sparkdate/features/live/controllers/live_session_controller.dart';
 import 'package:sparkdate/features/live/data/live_session_repository.dart';
 import 'package:sparkdate/features/live/services/video_call_service.dart';
 import 'package:sparkdate/features/live/views/live_views.dart';
@@ -57,7 +58,9 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 50));
     expect(find.text('Finding your best match...'), findsOneWidget);
-    await t.pump(const Duration(seconds: 1));
+    await repo.leave(); // stop the mock's queued round timers
+    await Get.delete<LiveSessionController>(force: true);
+    await t.pump(const Duration(seconds: 40));
   });
 
   testWidgets('round ends -> like -> mutual connection / waiting for response', (t) async {

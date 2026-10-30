@@ -32,7 +32,8 @@ void main() {
       final paid = await repo.book('evt_2', idempotencyKey: 'key-paid-0001');
       expect(paid.booking.status, BookingStatus.pending);
       expect(paid.booking.holdExpiresAt, isNotNull);
-      expect(paid.play!.obfuscatedProfileId, paid.booking.id);
+      expect(paid.play!.obfuscatedProfileId, isNull);
+      expect(paid.play!.obfuscatedAccountId, isNotEmpty);
       final free = await repo.book('evt_4', idempotencyKey: 'key-free-0001');
       expect(free.booking.status, BookingStatus.confirmed);
       expect(free.play, isNull);

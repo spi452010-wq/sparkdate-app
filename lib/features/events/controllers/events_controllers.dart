@@ -316,7 +316,7 @@ class PaymentController extends GetxController {
       final p = _purchase ??= await _billing.buyEventTicket(
           productId: play?.productId ?? event.playProductId ?? BillingProducts.eventTicket199,
           userId: play?.obfuscatedAccountId ?? _api.userId.value ?? '',
-          bookingId: play?.obfuscatedProfileId ?? b.id);
+          bookingId: b.id);
       final r = await _verifyAction
           .run((k) => _payments.verifyPlayPurchase(p, kind: PurchaseKind.ticket, bookingId: b.id, idempotencyKey: k));
       if (r.pending) {
@@ -331,6 +331,12 @@ class PaymentController extends GetxController {
       if (!e.retryable) _purchase = null;
       if (e.error == ApiErrorCode.eventFullRefunded || e.error == ApiErrorCode.bookingExpired) {
         _expire();
+      } else if (e.error == ApiErrorCode.bookingNotPending) {
+        // Already confirmed (e.g. by RTDN) or no longer pending: reload the real booking state.
+        state.value = PayState.ready;
+        showError(e);
+        await refreshStatus();
+        return;
       } else {
         state.value = PayState.ready;
       }

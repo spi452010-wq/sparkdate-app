@@ -11,7 +11,7 @@ abstract class BillingService extends GetxService {
   Future<bool> isAvailable();
 
   /// Consumable event ticket. obfuscatedAccountId = [userId]; [bookingId] is sent to the
-  /// server with the token (see [PlayBillingService] note on obfuscatedProfileId).
+  /// server with the token; the server matches obfuscatedAccountId to the user and takes bookingId from the body.
   Future<PurchaseResult> buyEventTicket({required String productId, required String userId, required String bookingId});
 
   /// Monthly Chat Pass subscription.

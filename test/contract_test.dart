@@ -114,9 +114,10 @@ void main() {
     test('POST /bookings result, verify results, subscription, notifications', () {
       final r = BookingResult.fromJson({
         'booking': bookingJson,
-        'play': {'productId': 'event_ticket_199', 'obfuscatedAccountId': 'u1', 'obfuscatedProfileId': 'b1'}
+        'play': {'productId': 'event_ticket_199', 'obfuscatedAccountId': 'u1'}
       });
-      expect(r.play!.obfuscatedProfileId, 'b1');
+      expect(r.play!.obfuscatedProfileId, isNull);
+      expect(r.play!.obfuscatedAccountId, 'u1');
       expect(VerifyResult.fromJson({'status': 'pending', 'booking': bookingJson}).pending, isTrue);
       expect(VerifyResult.fromJson({'status': 'confirmed', 'chatPassUntil': '2026-12-01T00:00:00Z'}).chatPassUntil, isNotNull);
       final c = ChatPassStatus.fromJson({
@@ -161,6 +162,7 @@ void main() {
         'REFUND_REJECTED',
         'PURCHASE_INVALID',
         'PRODUCT_MISMATCH',
+        'BOOKING_NOT_PENDING',
         'PURCHASE_ALREADY_USED',
         'EVENT_FULL_REFUNDED',
         'PLAY_UNAVAILABLE',
