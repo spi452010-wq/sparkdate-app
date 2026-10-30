@@ -47,6 +47,16 @@ class RemoteProfileRepository implements ProfileRepository {
   }
 
   @override
+  Future<ProfileView> updateProfile(Map<String, dynamic> changes) async {
+    try {
+      final r = await _dio.patch<Map<String, dynamic>>('/profile/me', data: changes);
+      return ProfileView.fromJson(r.data!);
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
   Future<String> submitSelfie(String path) async {
     try {
       final form = FormData.fromMap({'file': await MultipartFile.fromFile(path, filename: path.split('/').last)});

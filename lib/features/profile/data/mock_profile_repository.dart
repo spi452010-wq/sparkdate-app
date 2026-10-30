@@ -44,6 +44,20 @@ class MockProfileRepository implements ProfileRepository {
         {'id': 'mock_user', 'role': 'user', 'profileCompleted': false, 'verification': {'status': 'none'}});
   }
 
+  @override
+  Future<ProfileView> updateProfile(Map<String, dynamic> changes) async {
+    await _delay();
+    _saved ??= {
+      'id': 'mock_user',
+      'role': 'user',
+      'profileCompleted': true,
+      'verification': {'status': verification},
+      'profile': <String, dynamic>{'fullName': 'You', 'city': 'Mumbai', 'interests': <String>[]},
+    };
+    (_saved!['profile'] as Map<String, dynamic>).addAll(changes);
+    return ProfileView.fromJson(_saved!);
+  }
+
   String verification = 'none';
 
   @override

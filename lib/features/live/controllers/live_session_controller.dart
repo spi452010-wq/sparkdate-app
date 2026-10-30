@@ -56,7 +56,7 @@ class LiveSessionController extends GetxController {
         _roundOver();
       case EventEndedUpdate():
         completedDates.value = u.completedDates;
-        leave(to: u.completedDates == 0 ? Routes.refund : Routes.home);
+        u.completedDates == 0 ? leave(to: Routes.refund, arguments: eventId) : leave();
     }
   }
 
@@ -126,12 +126,12 @@ class LiveSessionController extends GetxController {
     Get.offNamed(Routes.waitingRoom);
   }
 
-  Future<void> leave({String to = Routes.home}) async {
+  Future<void> leave({String to = Routes.home, Object? arguments}) async {
     _hangUp();
     await _sub?.cancel();
     _sub = null;
     await _repo.leave();
-    Get.offAllNamed(to);
+    Get.offAllNamed(to, arguments: arguments);
     Future.microtask(() => Get.delete<LiveSessionController>(force: true));
   }
 

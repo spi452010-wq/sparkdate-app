@@ -18,7 +18,8 @@ void main() {
 
   test('chat requires a Chat Pass', () async {
     final r = MockConnectionsRepository();
-    expect(() => r.send('u_ananya', 'hi'), throwsA(isA<ApiException>().having((e) => e.error, 'error', ApiErrorCode.chatPassRequired)));
+    expect(() => r.send('u_ananya', 'hi'),
+        throwsA(isA<ApiException>().having((e) => e.error, 'error', ApiErrorCode.chatPassRequired)));
     r.chatPass = true;
     expect((await r.send('u_ananya', 'hi')).fromMe, isTrue);
   });

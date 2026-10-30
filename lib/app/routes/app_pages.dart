@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../features/auth/views/login_view.dart';
@@ -11,11 +10,11 @@ import '../../features/home/views/home_view.dart';
 import '../../features/live/views/live_views.dart';
 import '../../features/onboarding/views/onboarding_view.dart';
 import '../../features/profile/views/complete_profile_view.dart';
+import '../../features/profile/views/my_profile_views.dart';
+import '../../features/refund/views/refund_views.dart';
 import '../../features/splash/views/splash_view.dart';
 import '../bindings/feature_bindings.dart';
 import 'app_routes.dart';
-
-Widget _todo(String name) => Scaffold(appBar: AppBar(), body: Center(child: Text(name)));
 
 abstract final class AppPages {
   static final pages = <GetPage<dynamic>>[
@@ -32,7 +31,6 @@ abstract final class AppPages {
     GetPage(name: Routes.selfie, page: () => const SelfieView(), binding: SelfieBinding()),
     GetPage(name: Routes.payment, page: () => const PaymentView(), binding: PaymentBinding()),
     GetPage(name: Routes.bookingSuccess, page: () => const BookingSuccessView()),
-    // Built in later chunks
     // Live session
     GetPage(name: Routes.waitingRoom, page: () => const WaitingRoomView(), binding: LiveBinding()),
     GetPage(name: Routes.matchFound, page: () => const MatchFoundView(), binding: LiveBinding()),
@@ -50,7 +48,12 @@ abstract final class AppPages {
     GetPage(name: Routes.chatSubscription, page: () => const ChatSubscriptionView(), binding: ChatSubscriptionBinding()),
     GetPage(name: Routes.subscriptionSuccess, page: () => const SubscriptionSuccessView()),
     GetPage(name: Routes.notifications, page: () => const NotificationsView(), binding: NotificationsBinding()),
-    GetPage(name: Routes.refund, page: () => _todo('Refund')),
-    GetPage(name: Routes.profile, page: () => _todo('Profile')),
+    // Profile & refund
+    GetPage(name: Routes.profile, page: () => const ProfilePageView(), binding: MyProfileBinding()),
+    GetPage(name: Routes.profileDetails, page: () => const ProfileDetailsView(), binding: MyProfileBinding()),
+    GetPage(name: Routes.editProfile, page: () => const EditProfileView(), binding: MyProfileBinding()),
+    GetPage(name: Routes.refund, page: () => const RefundView(), binding: RefundBinding()),
+    GetPage(name: Routes.refundConfirm, page: () => const RefundConfirmView(), binding: RefundBinding()),
+    GetPage(name: Routes.refundDone, page: () => const RefundDoneView(), binding: RefundBinding()),
   ];
 }

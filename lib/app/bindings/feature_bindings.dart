@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../../features/profile/controllers/my_profile_controller.dart';
+import '../../features/refund/controllers/refund_controller.dart';
 import '../../features/connections/controllers/connections_controllers.dart';
 import '../../features/auth/controllers/auth_controller.dart';
 import '../../features/events/controllers/events_controllers.dart';
@@ -95,4 +97,21 @@ class ChatSubscriptionBinding extends Bindings {
 class NotificationsBinding extends Bindings {
   @override
   void dependencies() => Get.lazyPut(NotificationsController.new);
+}
+
+/// Profile tab / details / edit share one controller while the profile stack is open.
+class MyProfileBinding extends Bindings {
+  @override
+  void dependencies() {
+    if (!Get.isRegistered<MyProfileController>()) Get.lazyPut(MyProfileController.new);
+  }
+}
+
+class RefundBinding extends Bindings {
+  @override
+  void dependencies() {
+    if (!Get.isRegistered<RefundController>()) {
+      Get.put(RefundController(Get.arguments as String? ?? 'live'), permanent: true);
+    }
+  }
 }

@@ -12,4 +12,7 @@ abstract interface class ProfileRepository {
   /// POST /media/selfie (multipart) -> `{ key }`, then POST /profile/me/verification `{ selfieKey }`
   /// -> 202 `{ status: "pending" }`. Returns the verification status.
   Future<String> submitSelfie(String path);
+
+  /// PATCH /profile/me with only the edited fields (fullName, bio, city, interests, photos).
+  Future<ProfileView> updateProfile(Map<String, dynamic> changes);
 }
