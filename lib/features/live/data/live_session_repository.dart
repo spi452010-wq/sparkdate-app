@@ -19,11 +19,9 @@ abstract interface class LiveSessionRepository {
   /// `date:spark` (server rate limit 1/3 s).
   Future<void> spark(String dateId);
 
-  /// `event:leave` — the contract's only way to end the current date early (early_disconnect).
-  Future<void> endDate();
-
-  /// Re-send `event:join` to get back in the waiting set after [endDate].
-  Future<void> rejoin();
+  /// `date:leave {dateId}`: ends only this date early; partner gets `partner:left {reason: ended}`,
+  /// we stay in the event and the server queues us for the next round.
+  Future<void> endDate(String dateId);
 
   /// `event:leave` + close socket.
   Future<void> leave();
@@ -112,10 +110,7 @@ class SocketLiveSessionRepository implements LiveSessionRepository {
   Future<void> spark(String dateId) => _ack('date:spark', {'dateId': dateId});
 
   @override
-  Future<void> endDate() => _ack('event:leave', {'eventId': _eventId});
-
-  @override
-  Future<void> rejoin() => _sendJoin();
+  Future<void> endDate(String dateId) => _ack('date:leave', {'dateId': dateId});
 
   @override
   Future<void> leave() async {
@@ -177,8 +172,8 @@ class MockLiveSessionRepository implements LiveSessionRepository {
       final m = _current = LiveMatch(
         dateId: 'd_$_round',
         round: _round,
-        partner: const LivePartner(id: 'u_riya', fullName: 'Riya', age: 27, city: 'Indore', interests: ['Travel', 'Music', 'Photography']),
-        bio: 'Coffee lover, weekend trekker and amateur photographer.',
+        partner: const LivePartner(
+            id: 'u_riya', fullName: 'Riya', age: 27, city: 'Indore', interests: ['Travel', 'Music', 'Photography'], bio: 'Coffee lover, weekend trekker and amateur photographer.'),
         livekitUrl: 'wss://mock.livekit',
         livekitRoom: 'evt_${_eventId}_r${_round}_d_$_round',
         livekitToken: 'mock',
@@ -187,7 +182,10 @@ class MockLiveSessionRepository implements LiveSessionRepository {
       );
       _emit(MatchFoundUpdate(m));
       _timers.add(Timer(m.endsAt.difference(_serverNow), () {
-        if (_current?.dateId == m.dateId) _emit(RoundEndedUpdate(dateId: m.dateId, decisionDeadline: _serverNow.add(const Duration(seconds: 60))));
+        if (_current?.dateId != m.dateId) return;
+        _emit(RoundEndedUpdate(dateId: m.dateId, decisionDeadline: _serverNow.add(const Duration(seconds: 60))));
+        // Like the server: everyone still in the event is queued for the next round after the decision window.
+        _timers.add(Timer(const Duration(seconds: 60), _queue));
       }));
     }));
   }
@@ -207,15 +205,16 @@ class MockLiveSessionRepository implements LiveSessionRepository {
   Future<void> spark(String dateId) async {}
 
   @override
-  Future<void> endDate() async {
+  Future<void> endDate(String dateId) async {
+    final next = _current?.endsAt;
     _current = null;
     for (final t in _timers) {
       t.cancel();
     }
+    _timers.clear();
+    // Server keeps us in the event; we are matched again when the next round starts.
+    _timers.add(Timer(next == null ? Duration.zero : next.difference(_serverNow), _queue));
   }
-
-  @override
-  Future<void> rejoin() async => _queue();
 
   @override
   Future<void> leave() async {

@@ -73,6 +73,9 @@ void main() {
     await t.pump(const Duration(milliseconds: 500));
     expect(find.text("It's a Mutual Connection!"), findsOneWidget);
     expect(find.text('Riya is now added to your Saved Connections'), findsOneWidget);
+    await repo.leave();
+    await Get.delete<LiveSessionController>(force: true);
+    await t.pump(const Duration(seconds: 61));
   });
 
   testWidgets('one-sided save shows waiting for response', (t) async {
@@ -84,5 +87,8 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 500));
     expect(find.text('Waiting for Response'), findsOneWidget);
+    await repo.leave();
+    await Get.delete<LiveSessionController>(force: true);
+    await t.pump(const Duration(seconds: 61));
   });
 }

@@ -38,6 +38,7 @@ enum ApiErrorCode {
   purchaseInvalid('PURCHASE_INVALID', 'We could not verify this purchase.'),
   productMismatch('PRODUCT_MISMATCH', 'We could not verify this purchase.'),
   bookingNotPending('BOOKING_NOT_PENDING', 'This booking is no longer waiting for payment. Refreshing its status…'),
+  purchaseTokenUsed('PURCHASE_TOKEN_USED', 'This Google Play purchase is already linked to another booking. Contact support if you were charged.'),
   purchaseAlreadyUsed('PURCHASE_ALREADY_USED', 'This purchase was already used.'),
   eventFullRefunded('EVENT_FULL_REFUNDED', 'Your seat hold expired and the event filled up. Your payment is being refunded.'),
   playUnavailable('PLAY_UNAVAILABLE', 'Google Play is unavailable. Please try again shortly.'),

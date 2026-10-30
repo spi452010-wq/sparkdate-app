@@ -6,13 +6,14 @@ DateTime? _timeOrNull(Object? o) => o == null ? null : _time(o);
 
 /// Partner card as sent in `match:found` / `connection:mutual`.
 class LivePartner {
-  const LivePartner({required this.id, required this.fullName, this.age = 0, this.city = '', this.photoUrl, this.interests = const []});
+  const LivePartner({required this.id, required this.fullName, this.age = 0, this.city = '', this.photoUrl, this.interests = const [], this.bio = ''});
   final String id;
   final String fullName;
   final int age;
   final String city;
   final String? photoUrl;
   final List<String> interests;
+  final String bio;
 
   factory LivePartner.fromJson(Map<String, dynamic> j) => LivePartner(
         id: j['id'] as String,
@@ -21,6 +22,7 @@ class LivePartner {
         city: j['city'] as String? ?? '',
         photoUrl: j['photoUrl'] as String?,
         interests: ((j['interests'] as List?) ?? const []).cast<String>(),
+        bio: j['bio'] as String? ?? '',
       );
 }
 
@@ -35,7 +37,6 @@ class LiveMatch {
     required this.livekitToken,
     required this.startsAt,
     required this.endsAt,
-    this.bio = '',
   });
 
   final String dateId;
@@ -52,7 +53,6 @@ class LiveMatch {
   final DateTime endsAt;
 
   /// Not in the socket contract; kept for the intro card (empty from the server).
-  final String bio;
 
   String get partnerId => partner.id;
   String get name => partner.fullName;
@@ -60,6 +60,7 @@ class LiveMatch {
   String get city => partner.city;
   String? get photoUrl => partner.photoUrl;
   List<String> get interests => partner.interests;
+  String get bio => partner.bio;
 
   LiveMatch copyWith({DateTime? endsAt}) => LiveMatch(
       dateId: dateId,
@@ -69,8 +70,7 @@ class LiveMatch {
       livekitRoom: livekitRoom,
       livekitToken: livekitToken,
       startsAt: startsAt,
-      endsAt: endsAt ?? this.endsAt,
-      bio: bio);
+      endsAt: endsAt ?? this.endsAt);
 
   factory LiveMatch.fromJson(Map<String, dynamic> j) {
     final lk = _map(j['livekit']);

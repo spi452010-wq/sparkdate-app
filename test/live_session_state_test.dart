@@ -59,7 +59,7 @@ class CountingVideo extends MockVideoCallService {
 Map<String, dynamic> matchJson(DateTime start, {String dateId = 'd1', String token = 't1', Duration len = const Duration(seconds: 30)}) => {
       'dateId': dateId,
       'round': 1,
-      'partner': {'id': 'u2', 'fullName': 'Riya', 'age': 27, 'city': 'Indore', 'photoUrl': null, 'interests': ['Music']},
+      'partner': {'id': 'u2', 'fullName': 'Riya', 'age': 27, 'city': 'Indore', 'photoUrl': null, 'interests': ['Music'], 'bio': 'Loves chai'},
       'livekit': {'url': 'wss://lk', 'room': 'evt_e1_r1_$dateId', 'token': token},
       'startsAt': start.toUtc().toIso8601String(),
       'endsAt': start.add(len).toUtc().toIso8601String(),
@@ -78,6 +78,8 @@ void main() {
       expect(m.match.dateId, 'd1');
       expect(m.match.livekitRoom, 'evt_e1_r1_d1');
       expect(m.match.name, 'Riya');
+      expect(m.match.bio, 'Loves chai');
+      expect(LiveMatch.fromJson({...matchJson(DateTime.utc(2026)), 'partner': {'id': 'u2', 'bio': null}}).bio, '');
       expect(m.match.endsAt, DateTime.utc(2026, 11, 1, 18, 0, 30));
       expect(LiveUpdate.fromSocket('lobby:state', {'eventId': 'e1', 'round': 2, 'status': 'live', 'waiting': 9, 'nextRoundAt': '2026-11-01T18:00:00Z'}),
           isA<LobbyStateUpdate>().having((u) => u.waiting, 'waiting', 9));
@@ -85,6 +87,8 @@ void main() {
       expect(LiveUpdate.fromSocket('round:ended', {'dateId': 'd1', 'decisionDeadline': '2026-11-01T18:04:00Z'}), isA<RoundEndedUpdate>());
       expect(LiveUpdate.fromSocket('partner:left', {'dateId': 'd1', 'reason': 'disconnect'}),
           isA<PartnerLeftUpdate>().having((u) => u.reason, 'reason', 'disconnect'));
+      expect(LiveUpdate.fromSocket('partner:left', {'dateId': 'd1', 'reason': 'ended'}),
+          isA<PartnerLeftUpdate>().having((u) => u.reason, 'reason', 'ended'));
       expect(LiveUpdate.fromSocket('connection:mutual', {'connectionId': 'c1', 'partner': {'id': 'u2', 'fullName': 'Riya'}}),
           isA<ConnectionMutualUpdate>());
       expect(LiveUpdate.fromSocket('no:match', {'round': 3}), isA<NoMatchUpdate>());
@@ -262,7 +266,39 @@ void main() {
       await t.tap(find.byKey(const Key('back_to_queue')));
       await settle(t);
       expect(Get.currentRoute, Routes.waitingRoom);
-      expect(s.count('event:join'), 2);
+      // Still in the event: no event:leave, no re-join; the server queues us for the next round.
+      expect(s.count('event:join'), 1);
+      expect(s.count('event:leave'), 0);
+      await done(t);
+    });
+
+    testWidgets('partner ended the date (reason ended) -> early-ended screen -> back to queue', (t) async {
+      await inCall(t);
+      s.server('partner:left', {'dateId': 'd1', 'reason': 'ended'});
+      await settle(t);
+      expect(Get.currentRoute, Routes.earlyDisconnect);
+      expect(find.textContaining('Riya ended the date'), findsOneWidget);
+      expect(video.connected.value, isFalse);
+      await t.tap(find.byKey(const Key('back_to_queue')));
+      await settle(t);
+      expect(Get.currentRoute, Routes.waitingRoom);
+      expect(s.count('event:leave'), 0);
+      await done(t);
+    });
+
+    testWidgets('ending a date early sends date:leave {dateId}, not event:leave', (t) async {
+      await inCall(t);
+      expect(find.text('Loves chai'), findsOneWidget);
+      await t.tap(find.byKey(const Key('call_end')));
+      await settle(t);
+      expect(Get.currentRoute, Routes.earlyDisconnect);
+      expect(s.sent.last.$1, 'date:leave');
+      expect(s.sent.last.$2, {'dateId': 'd1'});
+      expect(s.count('event:leave'), 0);
+      await t.tap(find.byKey(const Key('back_to_queue')));
+      await settle(t);
+      expect(Get.currentRoute, Routes.waitingRoom);
+      expect(s.count('event:join'), 1);
       await done(t);
     });
 

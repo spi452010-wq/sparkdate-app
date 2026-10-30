@@ -163,6 +163,7 @@ void main() {
         'PURCHASE_INVALID',
         'PRODUCT_MISMATCH',
         'BOOKING_NOT_PENDING',
+        'PURCHASE_TOKEN_USED',
         'PURCHASE_ALREADY_USED',
         'EVENT_FULL_REFUNDED',
         'PLAY_UNAVAILABLE',

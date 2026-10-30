@@ -229,7 +229,9 @@ class EarlyDisconnectView extends GetView<LiveSessionController> {
                 title: 'Call ended early',
                 subtitle: controller.endedByMe.value
                     ? 'You left this date before the timer ended. You can still decide on this match.'
-                    : '${controller.match.value?.name ?? 'Your match'} disconnected. Don\'t worry — we\'ll find you someone new.',
+                    : controller.partnerEnded.value
+                        ? '${controller.match.value?.name ?? 'Your match'} ended the date. Don\'t worry — we\'ll find you someone new.'
+                        : '${controller.match.value?.name ?? 'Your match'} disconnected. Don\'t worry — we\'ll find you someone new.',
               ),
               const Spacer(),
               GradientButton(key: const Key('back_to_queue'), label: 'Back to Waiting Room', onPressed: controller.backToQueue),

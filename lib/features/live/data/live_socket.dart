@@ -28,7 +28,7 @@ class RemoteServerTime implements ServerTimeSource {
   RemoteServerTime(this._dio);
   final Dio _dio;
 
-  /// Response shape is not fixed by the contract; accepts `{serverTime|now|time: ISO|ms}`.
+  /// Contract: `{serverTime: epochMs}`; also tolerates `now`/`time` and ISO strings.
   @override
   Future<DateTime> now() async {
     final r = await _dio.get<Map<String, dynamic>>('/live/time');

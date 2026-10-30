@@ -26,6 +26,9 @@ class LiveSessionController extends GetxController {
   final inIntro = true.obs;
   final lastDecision = Rxn<Decision>();
   final endedByMe = false.obs;
+
+  /// Partner used `date:leave` (partner:left reason `ended`) rather than dropping/leaving.
+  final partnerEnded = false.obs;
   final completedDates = 0.obs;
   final sittingOut = false.obs;
   final reconnecting = false.obs;
@@ -76,6 +79,7 @@ class LiveSessionController extends GetxController {
         if (!_isCurrent(u.dateId)) return;
         _hangUp();
         endedByMe.value = false;
+        partnerEnded.value = u.reason == 'ended';
         Get.offNamed(Routes.earlyDisconnect);
       case ConnectionMutualUpdate():
         mutualConnectionId.value = u.connectionId;
@@ -92,6 +96,7 @@ class LiveSessionController extends GetxController {
         if (match.value != null && (_inCall || Get.currentRoute == Routes.matchFound)) {
           _hangUp();
           endedByMe.value = false;
+          partnerEnded.value = false;
           Get.offNamed(Routes.earlyDisconnect);
         }
       case JoinRejectedUpdate():
@@ -172,10 +177,12 @@ class LiveSessionController extends GetxController {
   }
 
   Future<void> endEarly() async {
+    final m = match.value;
     _hangUp();
     endedByMe.value = true;
+    if (m == null) return;
     try {
-      await _repo.endDate();
+      await _repo.endDate(m.dateId);
     } catch (_) {}
     Get.offNamed(Routes.earlyDisconnect);
   }
@@ -202,14 +209,12 @@ class LiveSessionController extends GetxController {
     }
   }
 
-  /// Back to the waiting room; re-sends `event:join` so the server queues us for the next round.
+  /// Back to the waiting room. We never left the event (date:leave / partner:left / decision keep us
+  /// in it), so the server queues us for the next round on its own.
   Future<void> backToQueue() async {
     _hangUp();
     match.value = null;
     Get.offNamed(Routes.waitingRoom);
-    try {
-      await _repo.rejoin();
-    } catch (_) {}
   }
 
   Future<void> leave({String to = Routes.home, Object? arguments}) async {
