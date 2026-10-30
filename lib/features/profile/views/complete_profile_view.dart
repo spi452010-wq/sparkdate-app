@@ -1,25 +1,24 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/router/routes.dart';
+import '../../../app/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
-import '../domain/profile.dart';
+import '../data/profile_models.dart';
 import 'profile_complete_dialog.dart';
-import 'profile_controller.dart';
+import '../controllers/profile_controller.dart';
 
 const _cities = ['Indore', 'Bhopal', 'Mumbai', 'Delhi NCR', 'Bengaluru'];
 const _fields = ['Software & Tech', 'Marketing & Growth', 'Finance & VC', 'Design & Creative', 'Product / SaaS'];
 
 /// Figma: "Complete Your Profile" (1898:7215) + success modal (1898:7394)
-class CompleteProfileScreen extends ConsumerWidget {
-  const CompleteProfileScreen({super.key});
+class CompleteProfileView extends GetView<ProfileController> {
+  const CompleteProfileView({super.key});
 
-  Future<void> _pickPhoto(WidgetRef ref, BuildContext context) async {
+  Future<void> _pickPhoto(BuildContext context) async {
     try {
       final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
       if (f == null) return;
@@ -32,8 +31,7 @@ class CompleteProfileScreen extends ConsumerWidget {
         if (context.mounted) _snack(context, 'Photo must be under 8 MB');
         return;
       }
-      final c = ref.read(profileControllerProvider.notifier);
-      c.update(ref.read(profileControllerProvider).draft.copyWith(photoPath: f.path));
+      controller.setDraft(controller.state.draft.copyWith(photoPath: f.path));
     } catch (_) {
       if (context.mounted) _snack(context, 'Could not open gallery');
     }
@@ -42,10 +40,12 @@ class CompleteProfileScreen extends ConsumerWidget {
   void _snack(BuildContext c, String m) => ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(m)));
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(profileControllerProvider);
+  Widget build(BuildContext context) => Obx(() => _build(context));
+
+  Widget _build(BuildContext context) {
+    final s = controller.state;
     final d = s.draft;
-    final c = ref.read(profileControllerProvider.notifier);
+    final c = controller;
     final pct = ProfileValidator.completion(d);
 
     Widget err(String k) => s.errors[k] == null
@@ -59,7 +59,7 @@ class CompleteProfileScreen extends ConsumerWidget {
       backgroundColor: const Color(0xFFFDF4FB),
       appBar: AppBar(
         centerTitle: false,
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go(Routes.login)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Get.offAllNamed(Routes.login)),
         title: const Text('Complete Your Profile', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
         actions: const [
           Padding(
@@ -96,7 +96,7 @@ class CompleteProfileScreen extends ConsumerWidget {
           Center(
             child: GestureDetector(
               key: const Key('photoPicker'),
-              onTap: () => _pickPhoto(ref, context),
+              onTap: () => _pickPhoto(context),
               child: CircleAvatar(
                 radius: 46,
                 backgroundColor: AppColors.surfaceTint,
@@ -112,7 +112,7 @@ class CompleteProfileScreen extends ConsumerWidget {
             initialValue: d.name,
             maxLength: 50,
             decoration: const InputDecoration(labelText: 'Full name', counterText: ''),
-            onChanged: (v) => c.update(d.copyWith(name: v)),
+            onChanged: (v) => c.setDraft(d.copyWith(name: v)),
           ),
           err('name'),
           const SizedBox(height: 12),
@@ -126,7 +126,7 @@ class CompleteProfileScreen extends ConsumerWidget {
                 firstDate: DateTime(now.year - 100),
                 lastDate: now,
               );
-              if (picked != null) c.update(ref.read(profileControllerProvider).draft.copyWith(dateOfBirth: picked));
+              if (picked != null) c.setDraft(controller.state.draft.copyWith(dateOfBirth: picked));
             },
             child: InputDecorator(
               decoration: const InputDecoration(labelText: 'Date of birth', suffixIcon: Icon(Icons.calendar_today_outlined, size: 18)),
@@ -144,7 +144,7 @@ class CompleteProfileScreen extends ConsumerWidget {
                   key: Key('gender_${g.name}'),
                   label: g == Gender.male ? 'Man' : 'Woman',
                   selected: d.gender == g,
-                  onTap: () => c.update(d.copyWith(gender: g)),
+                  onTap: () => c.setDraft(d.copyWith(gender: g)),
                 ),
               ),
               if (g == Gender.male) const SizedBox(width: 12),
@@ -161,7 +161,7 @@ class CompleteProfileScreen extends ConsumerWidget {
                   key: Key('interestedIn_${g.name}'),
                   label: g == Gender.male ? 'Men' : 'Women',
                   selected: d.interestedIn == g,
-                  onTap: () => c.update(d.copyWith(interestedIn: g)),
+                  onTap: () => c.setDraft(d.copyWith(interestedIn: g)),
                 ),
               ),
               if (g == Gender.male) const SizedBox(width: 12),
@@ -196,7 +196,7 @@ class CompleteProfileScreen extends ConsumerWidget {
           const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final city in _cities)
-              _Pill(label: city, selected: d.city == city, onTap: () => c.update(d.copyWith(city: city))),
+              _Pill(label: city, selected: d.city == city, onTap: () => c.setDraft(d.copyWith(city: city))),
           ]),
           const SizedBox(height: 24),
           const Row(children: [
@@ -222,7 +222,7 @@ class CompleteProfileScreen extends ConsumerWidget {
                 onTap: () {
                   final set = {...d.interests};
                   set.contains(i) ? set.remove(i) : set.add(i);
-                  c.update(d.copyWith(interests: set));
+                  c.setDraft(d.copyWith(interests: set));
                 },
               ),
             ),
@@ -246,7 +246,7 @@ class CompleteProfileScreen extends ConsumerWidget {
                       onTap: () {
                         final set = {...d.networkingFields};
                         set.contains(f) ? set.remove(f) : set.add(f);
-                        c.update(d.copyWith(networkingFields: set));
+                        c.setDraft(d.copyWith(networkingFields: set));
                       },
                     ),
                 ]),
@@ -269,7 +269,7 @@ class CompleteProfileScreen extends ConsumerWidget {
               if (!context.mounted) return;
               if (ok) {
                 final explore = await showProfileCompleteDialog(context);
-                if (explore == true && context.mounted) context.go(Routes.home);
+                if (explore == true && context.mounted) Get.offAllNamed(Routes.home);
               }
             },
           ),

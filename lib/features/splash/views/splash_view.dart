@@ -1,37 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/spark_logo.dart';
 
 /// Figma: "Splash Screen" (1898:4569)
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key, this.duration = const Duration(seconds: 2)});
-  final Duration duration;
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  Timer? _t;
-
-  @override
-  void initState() {
-    super.initState();
-    _t = Timer(widget.duration, () {
-      if (mounted) context.go(Routes.onboarding);
-    });
-  }
-
-  @override
-  void dispose() {
-    _t?.cancel();
-    super.dispose();
-  }
+class SplashView extends StatelessWidget {
+  const SplashView({super.key});
 
   @override
   Widget build(BuildContext context) {

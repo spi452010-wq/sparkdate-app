@@ -20,15 +20,17 @@ Follows `docs/api/AUTH_PROFILE_MEDIA.md`:
 - Profile reads return `photos:[{key, order, url}]`. The `url` is signed and valid for 15 min, so never persist it; cache images by `key`.
 - Billing (Play Billing, `event_ticket_199`, `chat_pass_monthly`) is only a stub interface in Sprint 1.
 
-## Structure
+## Structure (GetX)
 ```
 lib/
-  core/{theme,widgets,router,network}   # tokens, shared widgets, go_router, dio + errors + mock switch
-  features/
-    splash/ onboarding/ auth/ profile/ billing/
-      domain/        # models + repository interfaces
-      data/          # mock_* and remote_* implementations + providers
-      presentation/  # screens + Riverpod controllers
-assets/{images,icons}                   # exported from Figma
-test/                                   # unit + widget tests
+  main.dart                 # GetMaterialApp + InitialBinding
+  app/routes/               # app_routes.dart (names), app_pages.dart (GetPage + Bindings)
+  app/bindings/             # InitialBinding (ApiClient, repos: mock/real), feature bindings
+  core/{theme,widgets,network}
+  features/<feature>/
+    controllers/            # GetxController (Rx state)
+    views/                  # Obx / GetView screens
+    data/                   # models, repository interfaces, mock_* and remote_* impls
+test/
 ```
+State: GetX (`get`). Repositories are registered with `Get.lazyPut(fenix: true)`; `USE_MOCK` chooses mock vs remote.

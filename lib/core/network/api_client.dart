@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 
 import 'api_exception.dart';
 
@@ -7,25 +7,32 @@ import 'api_exception.dart';
 const useMockApi = bool.fromEnvironment('USE_MOCK', defaultValue: true);
 const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000/api/v1');
 
-final dioProvider = Provider<Dio>((ref) {
-  final dio = Dio(BaseOptions(
-    baseUrl: apiBaseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 15),
-    contentType: 'application/json',
-  ));
-  dio.interceptors.add(InterceptorsWrapper(
-    onRequest: (options, handler) {
-      final token = ref.read(accessTokenProvider);
-      if (token != null) options.headers['Authorization'] = 'Bearer $token';
-      handler.next(options);
-    },
-  ));
-  return dio;
-});
+/// App-wide HTTP client (registered permanently in [InitialBinding]).
+class ApiClient extends GetxService {
+  ApiClient({Dio? dio}) : dio = dio ?? _build() {
+    this.dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final t = accessToken.value;
+        if (t != null) options.headers['Authorization'] = 'Bearer $t';
+        handler.next(options);
+      },
+    ));
+  }
 
-/// In-memory access token (swap for flutter_secure_storage when backend lands).
-final accessTokenProvider = StateProvider<String?>((ref) => null);
+  final Dio dio;
+
+  /// In-memory access token (swap for flutter_secure_storage later).
+  final accessToken = RxnString();
+  final refreshToken = RxnString();
+  final userId = RxnString();
+
+  static Dio _build() => Dio(BaseOptions(
+        baseUrl: apiBaseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 15),
+        contentType: 'application/json',
+      ));
+}
 
 /// Maps a backend error body `{ "error": { "code": "OTP_INVALID" } }` to [ApiException].
 ApiException mapDioError(DioException e) {

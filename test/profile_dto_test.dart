@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sparkdate/features/profile/domain/profile.dart';
+import 'package:sparkdate/features/profile/data/profile_models.dart';
 
 void main() {
   test('PUT body matches API contract field names', () {

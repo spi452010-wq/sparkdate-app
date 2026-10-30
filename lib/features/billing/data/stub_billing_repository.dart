@@ -1,6 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../domain/billing_repository.dart';
+import '../data/billing_repository.dart';
 
 /// Placeholder until a later sprint wires `in_app_purchase` (Google Play Billing).
 class StubBillingRepository implements BillingRepository {
@@ -20,4 +19,3 @@ class StubBillingRepository implements BillingRepository {
       throw UnimplementedError('Play Billing not wired yet');
 }
 
-final billingRepositoryProvider = Provider<BillingRepository>((ref) => StubBillingRepository());

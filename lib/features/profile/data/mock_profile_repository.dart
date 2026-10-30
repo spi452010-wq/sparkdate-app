@@ -1,9 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_client.dart';
-import '../domain/profile.dart';
-import '../domain/profile_repository.dart';
-import 'remote_profile_repository.dart';
+import '../data/profile_models.dart';
+import '../data/profile_repository.dart';
 
 /// In-memory mock returning the same JSON shapes as the real API.
 class MockProfileRepository implements ProfileRepository {
@@ -48,7 +45,3 @@ class MockProfileRepository implements ProfileRepository {
   }
 }
 
-final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  if (useMockApi) return MockProfileRepository();
-  return RemoteProfileRepository(ref.watch(dioProvider));
-});

@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:get/get.dart';
 
-import '../../../core/router/routes.dart';
+import '../../../app/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
-import 'auth_controller.dart';
+import '../controllers/auth_controller.dart';
 
 /// Figma: "Login — WhatsApp" (1898:6576)
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class LoginView extends StatefulWidget {
+  const LoginView({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginViewState extends State<LoginView> {
   final _phone = TextEditingController();
   String? _localError;
 
@@ -34,20 +33,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     setState(() => _localError = null);
-    final ok = await ref.read(authControllerProvider.notifier).requestOtp('+91${_phone.text}');
-    if (ok && mounted) context.push(Routes.verify);
+    final ok = await _c.requestOtp('+91${_phone.text}');
+    if (ok && mounted) Get.toNamed(Routes.verify);
   }
 
+  AuthController get _c => Get.find<AuthController>();
+
   @override
-  Widget build(BuildContext context) {
-    final auth = ref.watch(authControllerProvider);
+  Widget build(BuildContext context) => Obx(() => _build(context));
+
+  Widget _build(BuildContext context) {
+    final auth = _c.state;
     final error = _localError ?? auth.error?.message;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.canPop() ? context.pop() : context.go(Routes.onboarding),
+          onPressed: () => Navigator.of(context).canPop() ? Get.back<void>() : Get.offAllNamed(Routes.onboarding),
         ),
         title: const Text('Login', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
       ),
@@ -147,8 +150,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: auth.loading
                     ? null
                     : () async {
-                        final ok = await ref.read(authControllerProvider.notifier).signInWithGoogle();
-                        if (ok && context.mounted) context.go(Routes.completeProfile);
+                        final ok = await _c.signInWithGoogle();
+                        if (ok && context.mounted) Get.offAllNamed(Routes.completeProfile);
                       },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),

@@ -1,4 +1,4 @@
-import 'profile.dart';
+import 'profile_models.dart';
 
 abstract interface class ProfileRepository {
   /// POST /media/photos (multipart, field `file`) -> `{ key }`.

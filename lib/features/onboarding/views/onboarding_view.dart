@@ -1,41 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:get/get.dart';
 
-import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
-import '../domain/onboarding_page.dart';
+import '../controllers/onboarding_controller.dart';
+import '../data/onboarding_page.dart';
 
 /// Figma: "Onboarding 01" (1898:9348) and "Onboarding 02" (1898:9405)
-class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+class OnboardingView extends GetView<OnboardingController> {
+  const OnboardingView({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
-}
+  Widget build(BuildContext context) => Obx(() => _build(context));
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _pc = PageController();
-  int _index = 0;
-
-  bool get _last => _index == onboardingPages.length - 1;
-
-  void _next() {
-    if (_last) {
-      context.go(Routes.login);
-    } else {
-      _pc.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-    }
-  }
-
-  @override
-  void dispose() {
-    _pc.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.splashBackground),
@@ -62,7 +40,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const Spacer(),
                 TextButton(
                   key: const Key('skip'),
-                  onPressed: () => context.go(Routes.login),
+                  onPressed: () => controller.finish(),
                   child: const Text('Skip',
                       style: TextStyle(color: Color(0xFF8A6D80), fontWeight: FontWeight.w600)),
                 ),
@@ -70,16 +48,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             Expanded(
               child: PageView.builder(
-                controller: _pc,
+                controller: controller.pageController,
                 itemCount: onboardingPages.length,
-                onPageChanged: (i) => setState(() => _index = i),
+                onPageChanged: controller.onPageChanged,
                 itemBuilder: (_, i) => _Page(onboardingPages[i]),
               ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(onboardingPages.length, (i) {
-                final on = i == _index;
+                final on = i == controller.index.value;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -98,8 +76,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 110),
               child: GradientButton(
                 key: const Key('onboardingNext'),
-                label: _last ? 'Get Started' : 'Next',
-                onPressed: _next,
+                label: controller.isLast ? 'Get Started' : 'Next',
+                onPressed: controller.next,
               ),
             ),
             const SizedBox(height: 40),

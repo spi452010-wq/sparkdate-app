@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
-import '../domain/profile.dart';
-import '../domain/profile_repository.dart';
+import '../data/profile_models.dart';
+import '../data/profile_repository.dart';
 
 /// Real client for docs/api/AUTH_PROFILE_MEDIA.md.
 /// Photos go as multipart/form-data (field `file`) to the API, which stores them on its disk

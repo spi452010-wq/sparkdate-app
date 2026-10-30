@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:get/get.dart';
 
-import '../../../core/router/routes.dart';
+import '../../../app/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gradient_button.dart';
-import '../domain/auth_models.dart';
-import 'auth_controller.dart';
+import '../data/auth_models.dart';
+import '../controllers/auth_controller.dart';
 
 /// Figma: "WhatsApp-verify" (1898:6646). Figma shows 4 boxes; contract uses 6 digits.
-class VerifyOtpScreen extends ConsumerStatefulWidget {
-  const VerifyOtpScreen({super.key});
+class VerifyOtpView extends StatefulWidget {
+  const VerifyOtpView({super.key});
 
   @override
-  ConsumerState<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
+  State<VerifyOtpView> createState() => _VerifyOtpViewState();
 }
 
-class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
+class _VerifyOtpViewState extends State<VerifyOtpView> {
   String _code = '';
 
   void _tap(String d) {
@@ -28,10 +27,10 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   }
 
   Future<void> _verify() async {
-    final ok = await ref.read(authControllerProvider.notifier).verify(_code);
+    final ok = await _c.verify(_code);
     if (!mounted) return;
     if (ok) {
-      context.go(Routes.completeProfile);
+      Get.offAllNamed(Routes.completeProfile);
     } else {
       setState(() => _code = '');
     }
@@ -39,9 +38,13 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
 
   String _fmt(int s) => '00:${s.toString().padLeft(2, '0')}';
 
+  AuthController get _c => Get.find<AuthController>();
+
   @override
-  Widget build(BuildContext context) {
-    final auth = ref.watch(authControllerProvider);
+  Widget build(BuildContext context) => Obx(() => _build(context));
+
+  Widget _build(BuildContext context) {
+    final auth = _c.state;
     final phone = auth.phone ?? '';
     final display = phone.length == 13 ? '${phone.substring(0, 3)} ${phone.substring(3, 8)} ${phone.substring(8)}' : phone;
     return Scaffold(
@@ -61,7 +64,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
               child: Stack(alignment: Alignment.center, children: [
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+                  child: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Get.back<void>()),
                 ),
                 const Text('WhatsApp Verification', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               ]),
@@ -73,7 +76,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                 style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: () => context.pop(),
+              onTap: () => Get.back<void>(),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
@@ -135,7 +138,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                   ? Text('Resend in ${_fmt(auth.resendIn)}',
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.purple))
                   : GestureDetector(
-                      onTap: auth.loading ? null : () => ref.read(authControllerProvider.notifier).resend(),
+                      onTap: auth.loading ? null : () => _c.resend(),
                       child: const Text('Resend code',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.purple)),
                     ),
@@ -152,7 +155,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
             ),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () => context.pop(),
+              onPressed: () => Get.back<void>(),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                 Text('Change WhatsApp Number', style: TextStyle(fontSize: 13, color: AppColors.textBody)),
                 Icon(Icons.chevron_right, size: 16, color: AppColors.textBody),

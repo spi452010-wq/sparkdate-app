@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
-import '../data/auth_providers.dart';
-import '../domain/auth_models.dart';
+import '../data/auth_repository.dart';
+import '../data/auth_models.dart';
 
 class AuthState {
   const AuthState({
@@ -47,13 +47,20 @@ class AuthState {
       );
 }
 
-class AuthController extends Notifier<AuthState> {
+class AuthController extends GetxController {
+  AuthController(this._repo, this._api);
+  final AuthRepository _repo;
+  final ApiClient _api;
   Timer? _timer;
 
+  final _state = const AuthState().obs;
+  AuthState get state => _state.value;
+  set state(AuthState v) => _state.value = v;
+
   @override
-  AuthState build() {
-    ref.onDispose(() => _timer?.cancel());
-    return const AuthState();
+  void onClose() {
+    _timer?.cancel();
+    super.onClose();
   }
 
   /// Returns true when OTP was sent.
@@ -61,7 +68,7 @@ class AuthController extends Notifier<AuthState> {
     if (state.loading) return false;
     state = state.copyWith(loading: true, clearError: true);
     try {
-      final r = await ref.read(authRepositoryProvider).requestOtp(phone);
+      final r = await _repo.requestOtp(phone);
       state = state.copyWith(
         loading: false,
         phone: phone,
@@ -83,11 +90,8 @@ class AuthController extends Notifier<AuthState> {
     if (state.loading || state.requestId == null) return false; // blocks double-tap
     state = state.copyWith(loading: true, clearError: true);
     try {
-      final s = await ref
-          .read(authRepositoryProvider)
-          .verifyOtp(requestId: state.requestId!, phone: state.phone!, code: code);
-      ref.read(accessTokenProvider.notifier).state = s.accessToken;
-      state = state.copyWith(loading: false, session: s);
+      final s = await _repo.verifyOtp(requestId: state.requestId!, phone: state.phone!, code: code);
+      _onSession(s);
       return true;
     } on ApiException catch (e) {
       state = state.copyWith(loading: false, error: e);
@@ -98,14 +102,19 @@ class AuthController extends Notifier<AuthState> {
   Future<bool> signInWithGoogle() async {
     state = state.copyWith(loading: true, clearError: true);
     try {
-      final s = await ref.read(authRepositoryProvider).signInWithGoogle();
-      ref.read(accessTokenProvider.notifier).state = s.accessToken;
-      state = state.copyWith(loading: false, session: s);
+      _onSession(await _repo.signInWithGoogle());
       return true;
     } on ApiException catch (e) {
       state = state.copyWith(loading: false, error: e);
       return false;
     }
+  }
+
+  void _onSession(AuthSession s) {
+    _api.accessToken.value = s.accessToken;
+    _api.refreshToken.value = s.refreshToken;
+    _api.userId.value = s.userId;
+    state = state.copyWith(loading: false, session: s);
   }
 
   void _startCooldown() {
@@ -117,5 +126,3 @@ class AuthController extends Notifier<AuthState> {
     });
   }
 }
-
-final authControllerProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);

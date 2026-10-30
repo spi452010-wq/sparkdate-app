@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
-import '../domain/auth_models.dart';
-import '../domain/auth_repository.dart';
+import '../data/auth_models.dart';
+import '../data/auth_repository.dart';
 
 /// Real implementation against the Node.js API (endpoints per draft contract).
 class RemoteAuthRepository implements AuthRepository {

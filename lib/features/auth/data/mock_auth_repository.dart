@@ -1,6 +1,6 @@
 import '../../../core/network/api_exception.dart';
-import '../domain/auth_models.dart';
-import '../domain/auth_repository.dart';
+import '../data/auth_models.dart';
+import '../data/auth_repository.dart';
 
 /// In-memory mock of the Node.js auth API, following the Sprint 1 OTP contract.
 /// The valid code is always `123456`. Phone `+910000000000` simulates provider downtime.

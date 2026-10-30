@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 
-import 'core/router/app_router.dart';
+import 'app/bindings/initial_binding.dart';
+import 'app/routes/app_pages.dart';
+import 'app/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 
-void main() {
-  runApp(const ProviderScope(child: SparkDateApp()));
-}
+void main() => runApp(const SparkDateApp());
 
-class SparkDateApp extends ConsumerWidget {
+class SparkDateApp extends StatelessWidget {
   const SparkDateApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp.router(
+  Widget build(BuildContext context) {
+    return GetMaterialApp(
       title: 'SparkDate',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      routerConfig: ref.watch(routerProvider),
+      initialBinding: InitialBinding(),
+      initialRoute: Routes.splash,
+      getPages: AppPages.pages,
     );
   }
 }
