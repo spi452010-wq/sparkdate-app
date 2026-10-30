@@ -7,6 +7,7 @@ import '../../features/events/views/booking_views.dart';
 import '../../features/events/views/event_detail_view.dart';
 import '../../features/events/views/events_view.dart';
 import '../../features/home/views/home_view.dart';
+import '../../features/live/views/live_views.dart';
 import '../../features/onboarding/views/onboarding_view.dart';
 import '../../features/profile/views/complete_profile_view.dart';
 import '../../features/splash/views/splash_view.dart';
@@ -31,7 +32,17 @@ abstract final class AppPages {
     GetPage(name: Routes.payment, page: () => const PaymentView(), binding: PaymentBinding()),
     GetPage(name: Routes.bookingSuccess, page: () => const BookingSuccessView()),
     // Built in later chunks
-    GetPage(name: Routes.waitingRoom, page: () => _todo('Waiting Room')),
+    // Live session
+    GetPage(name: Routes.waitingRoom, page: () => const WaitingRoomView(), binding: LiveBinding()),
+    GetPage(name: Routes.matchFound, page: () => const MatchFoundView(), binding: LiveBinding()),
+    GetPage(name: Routes.liveCall, page: () => const LiveCallView(), binding: LiveBinding()),
+    GetPage(name: Routes.earlyDisconnect, page: () => const EarlyDisconnectView(), binding: LiveBinding()),
+    GetPage(name: Routes.callEnded, page: () => const CallEndedView(), binding: LiveBinding()),
+    GetPage(name: Routes.waitingResponse, page: () => const WaitingResponseView(), binding: LiveBinding()),
+    GetPage(name: Routes.mutualConnection, page: () => const MutualConnectionView(), binding: LiveBinding()),
+    GetPage(name: Routes.connectionDetail, page: () => _todo('Profile')),
+    GetPage(name: Routes.chatSubscription, page: () => _todo('Chat Pass')),
+    GetPage(name: Routes.refund, page: () => _todo('Refund')),
     GetPage(name: Routes.chats, page: () => _todo('Chat')),
     GetPage(name: Routes.notifications, page: () => _todo('Notifications')),
     GetPage(name: Routes.profile, page: () => _todo('Profile')),

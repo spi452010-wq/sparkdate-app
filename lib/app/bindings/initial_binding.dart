@@ -9,6 +9,8 @@ import '../../features/billing/services/billing_service.dart';
 import '../../features/events/data/events_repository.dart';
 import '../../features/events/data/mock_events_repository.dart';
 import '../../features/events/data/remote_events_repository.dart';
+import '../../features/live/data/live_session_repository.dart';
+import '../../features/live/services/video_call_service.dart';
 import '../../features/profile/data/mock_profile_repository.dart';
 import '../../features/profile/data/profile_repository.dart';
 import '../../features/profile/data/remote_profile_repository.dart';
@@ -24,5 +26,9 @@ class InitialBinding extends Bindings {
     Get.put<ProfileRepository>(useMockApi ? MockProfileRepository() : RemoteProfileRepository(api.dio), permanent: true);
     Get.put<EventsRepository>(useMockApi ? MockEventsRepository() : RemoteEventsRepository(api.dio), permanent: true);
     Get.put<PaymentsRepository>(useMockApi ? MockPaymentsRepository() : RemotePaymentsRepository(api.dio), permanent: true);
+    Get.put<VideoCallService>(useMockApi ? MockVideoCallService() : LiveKitVideoCallService(), permanent: true);
+    Get.put<LiveSessionRepository>(
+        useMockApi ? MockLiveSessionRepository() : SocketLiveSessionRepository(apiBaseUrl, () => api.accessToken.value),
+        permanent: true);
   }
 }

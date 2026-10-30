@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../features/auth/controllers/auth_controller.dart';
 import '../../features/events/controllers/events_controllers.dart';
 import '../../features/home/controllers/home_controller.dart';
+import '../../features/live/controllers/live_session_controller.dart';
 import '../../features/onboarding/controllers/onboarding_controller.dart';
 import '../../features/profile/controllers/profile_controller.dart';
 import '../../features/splash/controllers/splash_controller.dart';
@@ -58,4 +59,14 @@ class SelfieBinding extends Bindings {
 class PaymentBinding extends Bindings {
   @override
   void dependencies() => Get.lazyPut(() => PaymentController(Get.find(), Get.find(), Get.find(), Get.find()));
+}
+
+/// Live flow screens share one permanent controller; it deletes itself on leave().
+class LiveBinding extends Bindings {
+  @override
+  void dependencies() {
+    if (!Get.isRegistered<LiveSessionController>()) {
+      Get.put(LiveSessionController(Get.find(), Get.find()), permanent: true);
+    }
+  }
 }
